@@ -2,8 +2,6 @@ import unittest
 
 class NewUserTest(unittest.TestCase):
 
-    def test_smoke_test(self):
-        self.assertEqual(2, 3)
 
     def test_user_can_create_logger(self):
         # Jan is a careful developer who prefers logging over print statements
@@ -12,7 +10,6 @@ class NewUserTest(unittest.TestCase):
         from src.zad_rek.ProfilLogger import ProfilLogger
         # Jan creates instance of ProfilLogger called my_logger
         my_logger = ProfilLogger()
-        a = 12
         self.assertIsInstance(my_logger, ProfilLogger)
     # Before logging his current work he decides to test the new logger
     # But, he has no idea how it works
