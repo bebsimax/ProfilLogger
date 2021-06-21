@@ -1,4 +1,8 @@
-
+import os
 class ProfilLogger:
-    pass
+    """Stop it, get some help"""
+
+    def info(self, msg):
+        open("log.log", "a")
+
 
