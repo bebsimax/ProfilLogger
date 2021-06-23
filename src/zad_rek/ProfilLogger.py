@@ -15,6 +15,12 @@ class ProfilLogger:
         self.log_level = "warning"
         self.handlers = handlers
 
+    def __repr__(self):
+        return f"ProfiLogger(handlers={self.handlers})"
+
+    def __str__(self):
+        return self.handlers
+
     def set_log_level(self, level):
         if level in self.levels.keys():
             self.log_level = level
@@ -60,6 +66,12 @@ class FileHandler:
     def __init__(self, file_name="log.txt"):
         self.file_name = file_name
 
+    def __repr__(self):
+        return f"FileHandler({self.file_name})"
+
+    def __str__(self):
+        return self.file_name
+
     def save(self, log_entry):
         """Saves given LogEntry to a txt file
         separates date, level, msg with ;
@@ -79,3 +91,9 @@ class LogEntry:
             self.level = level
         now = datetime.now()
         self.date = now.strftime("%b %d %Y %H:%M:%S")
+
+    def __repr__(self):
+        return f"LogEntry({self.date}, {self.level}, {self.msg})"
+
+    def __str__(self):
+        return f"{self.date} | {self.level} | {self.msg}"
