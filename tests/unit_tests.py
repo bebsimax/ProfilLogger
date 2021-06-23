@@ -257,7 +257,10 @@ class LogEntryTest(unittest.TestCase):
         self.assertEqual(entry.__str__(), f"{formatted_now} ; {level} ; {msg}",
                          "LogEntry does not print the way it should")
 
+class ProfilLoggerReaderTest(unittest.TestCase):
 
+    def test_smoke_test(self):
+        self.assertEqual(2, 3)
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
