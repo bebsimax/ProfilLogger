@@ -4,6 +4,15 @@ import inspect
 class ProfilLogger:
     """Stop it, get some help"""
 
+    def __new__(cls, handlers):
+        viable_handlers = [FileHandler]
+        for handler in handlers:
+            for viable_handler in viable_handlers:
+                if not isinstance(handler, viable_handler):
+                    raise TypeError("Unsupported type passed as Handler")
+        else:
+            return super(ProfilLogger, cls).__new__(cls)
+
     def __init__(self, handlers):
         self.levels = {
             "debug": 10,
