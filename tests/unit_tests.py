@@ -87,6 +87,11 @@ class ProfilLoggerTest(unittest.TestCase):
                     if f"This is test message for {method}" in line:
                         self.fail(f"{method} created log when it shouldn't")
 
+    def test_logger_raises_TypeError_when_passed_wrong_type_as_Handler(self):
+        with self.assertRaises(TypeError):
+            ProfilLogger(handlers=[11])
+            ProfilLogger(handlers=["log.txt"])
+
 
 class FileHandlerTest(unittest.TestCase):
 
