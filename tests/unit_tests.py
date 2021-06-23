@@ -16,11 +16,11 @@ class ProfilLogerTest(unittest.TestCase):
 
     def setUp(self):
         global logger
-        logger = ProfilLogger()
+        logger = ProfilLogger(handlers=[FileHandler()])
 
     def tearDown(self):
         try:
-            os.remove('log.log')
+            os.remove('log.txt')
         except OSError as error:
             #print(error)
             #print("log.log NOT REMOVED")
@@ -40,24 +40,17 @@ class ProfilLogerTest(unittest.TestCase):
         self.assertEqual(logger.log_level, "warning",
                          "set_log_method changed log level after receiving invalid input")
 
-    def test_info_always_creates_a_file(self):
-        logger.info("test message")
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        files = os.listdir(dir_path)
-
-        self.assertIn("log.log", files,
-                      "Info method didn't create empty log.log file")
-
     def test_logger_can_save_message_to_file(self):
         logger.warning("This is your last warning")
         dir_path = os.path.dirname(os.path.realpath(__file__))
         files = os.listdir(dir_path)
-        self.assertIn("log.log", files,
+        self.assertIn("log.txt", files,
                       "Warning method didn't create log.log file")
-        with open ("log.log", "r", newline="\n") as file:
+        with open ("log.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
-            self.assertEqual(lines[0], "This is your last warning")
+            self.assertTrue( "This is your last warning" in lines[0],
+                            "warning didn't save message")
 
     def test_logger_saves_all_log_levels_that_he_needs_to_save(self):
         levels = list(logger.levels.keys())
@@ -67,12 +60,15 @@ class ProfilLogerTest(unittest.TestCase):
         for method in levels:
             class_method = getattr(logger, method)
             class_method(f"This is test message for {method}")
-        with open("log.log", "r", newline="\n") as file:
+        with open("log.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
             for method in levels_to_write:
-                self.assertTrue(f"This is test message for {method}" in lines,
-                                f"{method} didn't create a sample text")
+                for line in lines:
+                    if f"This is test message for {method}" in line:
+                        break
+                else:
+                    self.fail(f"{method} didn't create a sample text")
 
     def test_logger_does_not_save_logs_that_do_not_need_to_be_saved(self):
         levels = list(logger.levels.keys())
@@ -82,13 +78,15 @@ class ProfilLogerTest(unittest.TestCase):
         for method in levels:
             class_method = getattr(logger, method)
             class_method(f"This is test message for {method}")
-        with open("log.log", "r", newline="\n") as file:
+        with open("log.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
+            print(lines)
             levels_not_to_write = set(levels) - set(levels_to_write)
             for method in levels_not_to_write:
-                self.assertTrue(f"This is test message for {method}" not in lines,
-                                f"{method} created a sample text, when it shouldn't")
+                for line in lines:
+                    if f"This is test message for {method}" in line:
+                        self.fail(f"{method} created log when it shouldn't")
 
 
 class FileHandlerTest(unittest.TestCase):
