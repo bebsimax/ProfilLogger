@@ -9,7 +9,7 @@ src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, LogEntry
+from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader
 
 
 class ProfilLoggerTest(unittest.TestCase):
@@ -46,7 +46,7 @@ class ProfilLoggerTest(unittest.TestCase):
         files = os.listdir(dir_path)
         self.assertIn("log.txt", files,
                       "Warning method didn't create log.log file")
-        with open ("log.txt", "r", newline="\n") as file:
+        with open("log.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
             self.assertTrue( "This is your last warning" in lines[0],
@@ -99,18 +99,18 @@ class ProfilLoggerTest(unittest.TestCase):
         my_logger = ProfilLogger(handlers=[first_handler, second_handler])
         now = datetime.datetime.now()
         my_logger.warning("Are you still there?")
-        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         with open ("first.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
             line_in_first = lines[0]
-            self.assertEqual(line_in_first, (f"{formated_now} ; warning ; Are you still there?"),
+            self.assertEqual(line_in_first, (f"{formatted_now} ; warning ; Are you still there?"),
                              "Warning didn't save message to the first.txt file")
         with open ("second.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
             line_in_second = lines[0]
-            self.assertEqual(line_in_second, (f"{formated_now} ; warning ; Are you still there?"),
+            self.assertEqual(line_in_second, (f"{formatted_now} ; warning ; Are you still there?"),
                              "Warning didn't save message to the second.txt file")
 
         self.assertEqual(line_in_first, line_in_second,
@@ -157,7 +157,7 @@ class FileHandlerTest(unittest.TestCase):
         import datetime
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
-        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         file_handler.save(my_log)
         with open ("log.txt", "r", newline="\n") as file:
             file_content = file.read()
@@ -165,7 +165,7 @@ class FileHandlerTest(unittest.TestCase):
             lines = [component.strip() for component in lines[0].split(";")]
             date, level, msg = tuple(lines)
 
-        self.assertEqual(date, formated_now,
+        self.assertEqual(date, formatted_now,
                          "FileHandler didn't save date")
         self.assertEqual(msg, "this is message",
                          "FileHandler didn't save msg")
@@ -176,7 +176,7 @@ class FileHandlerTest(unittest.TestCase):
         import datetime
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
-        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         file_handler = FileHandler("sample.txt")
         file_handler.save(my_log)
         with open("sample.txt", "r", newline="\n") as file:
@@ -185,7 +185,7 @@ class FileHandlerTest(unittest.TestCase):
             lines = [component.strip() for component in lines[0].split(";")]
             date, level, msg = tuple(lines)
 
-        self.assertEqual(date, formated_now,
+        self.assertEqual(date, formatted_now,
                          "FileHandler didn't save date")
         self.assertEqual(msg, "this is message",
                          "FileHandler didn't save msg")
@@ -241,11 +241,22 @@ class LogEntryTest(unittest.TestCase):
     def test_LogEntry_stores_datetime(self):
         import datetime
         now = datetime.datetime.now()
-        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         message = "I am logging"
         entry = LogEntry(message)
         data_from_log = entry.date
-        self.assertEqual(data_from_log, formated_now)
+        self.assertEqual(data_from_log, formatted_now)
+
+    def test_printed_LogEntry_returns_correct_text(self):
+        import datetime
+        msg = "The message"
+        level = "info"
+        now = datetime.datetime.now()
+        entry = LogEntry(msg, level=level)
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        self.assertEqual(entry.__str__(), f"{formatted_now} ; {level} ; {msg}",
+                         "LogEntry does not print the way it should")
+
 
 
 if __name__ == '__main__':
