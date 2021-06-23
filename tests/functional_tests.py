@@ -12,31 +12,23 @@ src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger
-
-
-class CreationTest(unittest.TestCase):
-
-    def test_user_can_create_logger(self):
-        # Jan creates instance of ProfilLogger called my_logger
-        my_logger = ProfilLogger()
-        self.assertIsInstance(my_logger, ProfilLogger)
+from ProfilLogger import ProfilLogger, FileHandler, LogEntry
 
 
 class UsageTest(unittest.TestCase):
 
     def setUp(self):
         global my_logger
-        my_logger = ProfilLogger()
+        my_logger = ProfilLogger(handlers=[FileHandler()])
 
     def tearDown(self):
         try:
-            os.remove('log.log')
+            os.remove('log.txt')
         except OSError as error:
             print(error)
             print("log.log NOT REMOVED")
 
-    def test_logger_always_creates_a_file(self):
+    def test_logger_not_always_creates_a_file(self):
         # Before logging his current work he decides to test the new logger
         # But, he has no idea how it works
         # He checks the docstring
@@ -50,15 +42,10 @@ class UsageTest(unittest.TestCase):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         files = os.listdir(dir_path)
 
-        self.assertIn("log.log", files,
-                      "Info method didn't create empty log.log file")
-        # The operation didn't cause error, and he noticed empty log.log file in his working directory
-        with open ("log.log", "r") as file:
 
-            file_content = file.read()
-
-            self.assertEqual(file_content, '',
-                            "Info created not empty log.log file")
+        # The operation didn't cause error, and he didn't notice any new file in his working directory
+        self.assertTrue("log.txt" not in files,
+                        "Info method created empty log.txt file")
 
     def test_warning_is_default_log_level(self):
         # He reads the help once again, only to find about the default setting for log entry is warning
@@ -73,28 +60,30 @@ class UsageTest(unittest.TestCase):
         my_logger.info("My first info message")
         dir_path = os.path.dirname(os.path.realpath(__file__))
         files = os.listdir(dir_path)
-        self.assertIn("log.log", files,
+        # This time the file log.txt is created
+        self.assertIn("log.txt", files,
                       "Info method didn't create log.log file")
 
-        # This time the file log.log contains his message
-        with open ("log.log", "r") as file:
+        # His new shiny file contains his, message
+        with open ("log.txt", "r") as file:
             whole_text = file.read()
             lines = whole_text.splitlines()
-
-            self.assertTrue("My first info message" in lines,
+            print(lines)
+            self.assertTrue("My first info message" in lines[0],
                             "info didn't save message to file")
-
 
         # He adds warning level message to his log
         my_logger.warning("My first warning message")
 
-        # He checks if it created a new enrty in his log.log file
-        with open("log.log", "r") as file:
+        # He checks if it created a new entry in his log.txt file
+        with open("log.txt", "r") as file:
             whole_text = file.read()
+            print(whole_text)
             lines = whole_text.splitlines()
-            self.assertTrue("My first warning message" in lines,
+            self.assertTrue("My first warning message" in lines[1],
                              "warning didn't save message to file")
 
+        self.fail("this is not ever")
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
