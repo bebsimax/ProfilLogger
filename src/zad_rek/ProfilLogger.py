@@ -125,7 +125,7 @@ class FileHandler:
             whole_file = file.read()
             lines = whole_file.splitlines()
             lines = [line.split(";") for line in lines]
-            logs = [LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip()) for msg, level, date in tuple(lines)]
+            logs = [LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip()) for date, level, msg in tuple(lines)]
         return logs
 
 
@@ -167,3 +167,6 @@ class ProfilLoggerReader:
 
     def find_by_text(self, text, start_date=None, end_date=None):
         log_entries = self.handler.read()
+        filtered_logs = [log for log in log_entries if text in log.msg]
+        #TODO: Add filtration by dates
+        return filtered_logs
