@@ -92,7 +92,38 @@ class ProfilLoggerTest(unittest.TestCase):
             ProfilLogger(handlers=[11])
             ProfilLogger(handlers=["log.txt"])
 
+    def test_logger_can_save_to_two_txt_files_at_once(self):
+        import datetime
+        first_handler = FileHandler("first.txt")
+        second_handler = FileHandler("second.txt")
+        my_logger = ProfilLogger(handlers=[first_handler, second_handler])
+        now = datetime.datetime.now()
+        my_logger.warning("Are you still there?")
+        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        with open ("first.txt", "r", newline="\n") as file:
+            file_content = file.read()
+            lines = file_content.splitlines()
+            line_in_first = lines[0]
+            self.assertEqual(line_in_first, (f"{formated_now} ; warning ; Are you still there?"),
+                             "Warning didn't save message to the first.txt file")
+        with open ("second.txt", "r", newline="\n") as file:
+            file_content = file.read()
+            lines = file_content.splitlines()
+            line_in_second = lines[0]
+            self.assertEqual(line_in_second, (f"{formated_now} ; warning ; Are you still there?"),
+                             "Warning didn't save message to the second.txt file")
 
+        self.assertEqual(line_in_first, line_in_second,
+                         "Saved lines aren't equal")
+
+        try:
+            os.remove('first.txt')
+        except OSError:
+            pass
+        try:
+            os.remove('second.txt')
+        except OSError:
+            pass
 class FileHandlerTest(unittest.TestCase):
 
     def setUp(self):
