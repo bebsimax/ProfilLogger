@@ -124,6 +124,8 @@ class ProfilLoggerTest(unittest.TestCase):
             os.remove('second.txt')
         except OSError:
             pass
+
+
 class FileHandlerTest(unittest.TestCase):
 
     def setUp(self):
@@ -222,12 +224,35 @@ class FileHandlerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 FileHandler(f"loglogl{invalid}g.txt")
 
+    def test_read_method_returns_all_logs_in_form_of_LogEntries(self):
+        my_handler = FileHandler("test_log.txt")
+        my_logger = ProfilLogger(handlers=[my_handler])
+        my_logger.set_log_level("debug")
+        my_logger.debug("This is debug message")
+        my_logger.info("This is info message")
+        my_logger.warning("This is warning message")
+        my_logger.error("This is error message")
+        my_logger.critical("This is critical message")
+        list_of_logs = my_handler.read()
+        try:
+            for log in list_of_logs:
+                self.assertTrue(isinstance(log, LogEntry),
+                                f"{log} is not an instance of LogEntry")
+
+        except TypeError:
+            pass
+        finally:
+            try:
+                os.remove('test_log.txt')
+            except OSError as error:
+                print(error)
 
 class LogEntryTest(unittest.TestCase):
 
     def test_LogEntry_stores_user_message(self):
         message = "I am logging"
-        entry = LogEntry(message)
+        level = "info"
+        entry = LogEntry(message, level)
         self.assertEqual(message, entry.msg,
                          "LogEntry didn't store message")
 
@@ -243,7 +268,8 @@ class LogEntryTest(unittest.TestCase):
         now = datetime.datetime.now()
         formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         message = "I am logging"
-        entry = LogEntry(message)
+        level = "debug"
+        entry = LogEntry(message, level)
         data_from_log = entry.date
         self.assertEqual(data_from_log, formatted_now)
 
@@ -259,8 +285,24 @@ class LogEntryTest(unittest.TestCase):
 
 class ProfilLoggerReaderTest(unittest.TestCase):
 
-    def test_smoke_test(self):
-        self.assertEqual(2, 3)
+    def test_logger_reader_cannot_be_created_without_passing_an_argument(self):
+        with self.assertRaises(TypeError):
+            ProfilLoggerReader()
+
+    def test_logger_reader_cannot_be_created_without_valid_handler(self):
+        with self.assertRaises(TypeError):
+            ProfilLoggerReader(handler="log.txt")
+
+    def test_logger_reader_rises_TypeError_when_receiving_more_than_one_handler(self):
+        first = FileHandler("first.txt")
+        second = FileHandler("second.txt")
+        with self.assertRaises(TypeError):
+            ProfilLoggerReader(handler=[first, second])
+
+    def test_logger_reader_can_be_created_with_correct_handler(self):
+        my_handler = FileHandler("logs.txt")
+        my_logger_reader = ProfilLoggerReader(my_handler)
+        self.assertTrue(isinstance(my_logger_reader, ProfilLoggerReader))
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')

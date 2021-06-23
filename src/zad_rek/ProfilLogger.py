@@ -1,5 +1,7 @@
 import os
 import inspect
+import datetime
+
 
 class ProfilLogger:
     """Stop it, get some help"""
@@ -118,21 +120,50 @@ class FileHandler:
         with open (self.file_name, "a", newline="\n") as file:
             file.write(f"{log_entry.date} ; {log_entry.level} ; {log_entry.msg}\n")
 
+    def read(self):
+        with open(self.file_name, "r", newline="\n") as file:
+            whole_file = file.read()
+            lines = whole_file.splitlines()
+            lines = [line.split(";") for line in lines]
+            logs = [LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip()) for msg, level, date in tuple(lines)]
+        return logs
+
+
+
+
+
 
 
 class LogEntry:
     """Creates log entries"""
-    def __init__(self, msg, level=None):
-        from datetime import datetime
+    def __init__(self, msg, level, date=None):
         self.msg = msg
-        if level:
-            self.level = level
-        now = datetime.now()
-        self.date = now.strftime("%b %d %Y %H:%M:%S")
+        self.level = level
+        if date:
+            self.date = date
+        else:
+            date = datetime.datetime.now()
+            self.date = date.strftime("%b %d %Y %H:%M:%S")
 
     def __repr__(self):
         return f"LogEntry({self.date}, {self.level}, {self.msg})"
 
     def __str__(self):
-        return f"{self.date} | {self.level} | {self.msg}"
+        return f"{self.date} ; {self.level} ; {self.msg}"
 
+
+class ProfilLoggerReader:
+
+    def __new__(cls, handler):
+        viable_handlers = [FileHandler]
+        for viable_handler in viable_handlers:
+            if not isinstance(handler, viable_handler):
+                raise TypeError("Unsupported type passed as Handler")
+        else:
+            return super(ProfilLoggerReader, cls).__new__(cls)
+
+    def __init__(self, handler):
+        self.handler = handler
+
+    def find_by_text(self, text, start_date=None, end_date=None):
+        log_entries = self.handler.read()
