@@ -9,7 +9,8 @@ src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger
+from ProfilLogger import ProfilLogger, FileHandler, LogEntry
+
 
 class ProfilLogerTest(unittest.TestCase):
 
@@ -73,8 +74,117 @@ class ProfilLogerTest(unittest.TestCase):
                 self.assertTrue(f"This is test message for {method}" in lines,
                                 f"{method} didn't create a sample text")
 
+    def test_logger_does_not_save_logs_that_do_not_need_to_be_saved(self):
+        levels = list(logger.levels.keys())
+        selected_level = random.choice(levels)
+        logger.set_log_level(selected_level)
+        levels_to_write = [name for name in levels if logger.levels[selected_level] <= logger.levels[name]]
+        for method in levels:
+            class_method = getattr(logger, method)
+            class_method(f"This is test message for {method}")
+        with open("log.log", "r", newline="\n") as file:
+            file_content = file.read()
+            lines = file_content.splitlines()
+            levels_not_to_write = set(levels) - set(levels_to_write)
+            for method in levels_not_to_write:
+                self.assertTrue(f"This is test message for {method}" not in lines,
+                                f"{method} created a sample text, when it shouldn't")
 
 
+class FileHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global file_handler
+        file_handler = FileHandler()
+
+    def tearDown(self):
+        try:
+            os.remove('log.txt')
+        except OSError as error:
+            #print(error)
+            #print("log.txt NOT REMOVED")
+            pass
+        try:
+            os.remove('sample.txt')
+        except OSError as error:
+            #print(error)
+            #print("sample.txt NOT REMOVED")
+            pass
+
+    def test_file_handler_default_file_name_is_log_txt(self):
+        self.assertEqual(file_handler.file_name, "log.txt",
+                         "log.txt is not default file name")
+
+    def test_file_handler_saves_file_name_given_during_creation(self):
+        file_handler = FileHandler("logger.txt")
+        self.assertEqual(file_handler.file_name, "logger.txt",
+                         "FileHandler didn't change file_name during creation")
+
+    def test_file_handler_creates_log_txt_by_default(self):
+        import datetime
+        now = datetime.datetime.now()
+        my_log = LogEntry("this is message", "this is level")
+        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        file_handler.save(my_log)
+        with open ("log.txt", "r", newline="\n") as file:
+            file_content = file.read()
+            lines = file_content.splitlines()
+            lines = [component.strip() for component in lines[0].split(";")]
+            date, level, msg = tuple(lines)
+
+        self.assertEqual(date, formated_now,
+                         "FileHandler didn't save date")
+        self.assertEqual(msg, "this is message",
+                         "FileHandler didn't save msg")
+        self.assertEqual(level, "this is level",
+                         "FileHandler didn't save level")
+
+    def test_file_handler_creates_log_with_specified_name(self):
+        import datetime
+        now = datetime.datetime.now()
+        my_log = LogEntry("this is message", "this is level")
+        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        file_handler = FileHandler("sample.txt")
+        file_handler.save(my_log)
+        with open("sample.txt", "r", newline="\n") as file:
+            file_content = file.read()
+            lines = file_content.splitlines()
+            lines = [component.strip() for component in lines[0].split(";")]
+            date, level, msg = tuple(lines)
+
+        self.assertEqual(date, formated_now,
+                         "FileHandler didn't save date")
+        self.assertEqual(msg, "this is message",
+                         "FileHandler didn't save msg")
+        self.assertEqual(level, "this is level",
+                         "FileHandler didn't save level")
+
+
+
+
+class LogEntryTest(unittest.TestCase):
+
+    def test_LogEntry_stores_user_message(self):
+        message = "I am logging"
+        entry = LogEntry(message)
+        self.assertEqual(message, entry.msg,
+                         "LogEntry didn't store message")
+
+    def test_LogEntry_stores_level(self):
+        message = "Boxes"
+        level = "info"
+        entry = LogEntry(message, level)
+        self.assertEqual(entry.level, level,
+                         "LogEntry didn't store level")
+
+    def test_LogEntry_stores_datetime(self):
+        import datetime
+        now = datetime.datetime.now()
+        formated_now = now.strftime("%b %d %Y %H:%M:%S")
+        message = "I am logging"
+        entry = LogEntry(message)
+        data_from_log = entry.date
+        self.assertEqual(data_from_log, formated_now)
 
 
 if __name__ == '__main__':
