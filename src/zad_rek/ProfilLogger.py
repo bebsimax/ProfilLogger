@@ -63,7 +63,35 @@ class ProfilLogger:
 
 class FileHandler:
     """Used to save LogEntry to a .txt file"""
+
+    def __new__(cls, entry="log.txt"):
+
+        if entry == "log.txt":
+            return super(FileHandler, cls).__new__(cls)
+
+        if not isinstance(entry, str):
+            raise TypeError("Input should be a string")
+
+        if len(entry) <= 4:
+            raise ValueError("File name must be at least 5 characters long and include .txt at the end")
+
+        if len(entry) >= 60:
+            raise ValueError("Length of file name cannot get past 60 characters")
+
+        if entry[-4:] != ".txt":
+            raise ValueError("Passed file name does not end with '.txt'")
+
+        if entry[-5] in [" ", "."]:
+            raise ValueError("It is not possible to have space or dot before .txt in file name")
+
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for character in entry[:-4]:
+            if character in invalid_characters:
+                raise ValueError(f"Any of the following are not allowed in a file name {invalid_characters}")
+        return super(FileHandler, cls).__new__(cls)
+
     def __init__(self, file_name="log.txt"):
+
         self.file_name = file_name
 
     def __repr__(self):
@@ -82,6 +110,7 @@ class FileHandler:
             file.write(f"{log_entry.date} ; {log_entry.level} ; {log_entry.msg}\n")
 
 
+
 class LogEntry:
     """Creates log entries"""
     def __init__(self, msg, level=None):
@@ -97,3 +126,4 @@ class LogEntry:
 
     def __str__(self):
         return f"{self.date} | {self.level} | {self.msg}"
+
