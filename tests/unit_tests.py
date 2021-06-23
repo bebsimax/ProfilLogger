@@ -12,7 +12,7 @@ sys.path.append(zad_rek_path)
 from ProfilLogger import ProfilLogger, FileHandler, LogEntry
 
 
-class ProfilLogerTest(unittest.TestCase):
+class ProfilLoggerTest(unittest.TestCase):
 
     def setUp(self):
         global logger
@@ -81,7 +81,6 @@ class ProfilLogerTest(unittest.TestCase):
         with open("log.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
-            print(lines)
             levels_not_to_write = set(levels) - set(levels_to_write)
             for method in levels_not_to_write:
                 for line in lines:
@@ -157,7 +156,35 @@ class FileHandlerTest(unittest.TestCase):
         self.assertEqual(level, "this is level",
                          "FileHandler didn't save level")
 
+    def test_file_handler_returns_TypeError_when_passed_wrong_type(self):
+        with self.assertRaises(TypeError):
+            FileHandler(11)
 
+    def test_file_handler_returns_ValueError_when_input_is_too_short(self):
+        with self.assertRaises(ValueError):
+            FileHandler("log")
+
+    def test_file_handler_returns_ValueError_when_input_is_too_long(self):
+        with self.assertRaises(ValueError):
+            FileHandler("logloglogloglogloglogloglogloglogloglogloglogloglogloglogloglogloglog.txt")
+
+    def test_file_handler_returns_ValueError_when_input_does_not_end_with_dottxt(self):
+        with self.assertRaises(ValueError):
+            FileHandler("logloglog.json")
+
+    def test_file_handler_returns_ValueError_when_file_name_ends_with_space(self):
+        with self.assertRaises(ValueError):
+            FileHandler("logloglog .txt")
+
+    def test_file_handler_returns_ValueError_when_file_name_ends_with_dot(self):
+        with self.assertRaises(ValueError):
+            FileHandler("logloglog..txt")
+
+    def test_file_handler_returns_ValueError_when_file_contains_invalid_character(self):
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for invalid in invalid_characters:
+            with self.assertRaises(ValueError):
+                FileHandler(f"loglogl{invalid}g.txt")
 
 
 class LogEntryTest(unittest.TestCase):
