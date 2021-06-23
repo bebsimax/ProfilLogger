@@ -2,7 +2,7 @@ import unittest
 import os
 import sys
 import random
-
+import datetime
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
 src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
@@ -156,7 +156,6 @@ class FileHandlerTest(unittest.TestCase):
                          "FileHandler didn't change file_name during creation")
 
     def test_file_handler_creates_log_txt_by_default(self):
-        import datetime
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
         formatted_now = now.strftime("%b %d %Y %H:%M:%S")
@@ -175,7 +174,6 @@ class FileHandlerTest(unittest.TestCase):
                          "FileHandler didn't save level")
 
     def test_file_handler_creates_log_with_specified_name(self):
-        import datetime
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
         formatted_now = now.strftime("%b %d %Y %H:%M:%S")
@@ -247,6 +245,7 @@ class FileHandlerTest(unittest.TestCase):
             except OSError as error:
                 print(error)
 
+
 class LogEntryTest(unittest.TestCase):
 
     def test_LogEntry_stores_user_message(self):
@@ -264,7 +263,6 @@ class LogEntryTest(unittest.TestCase):
                          "LogEntry didn't store level")
 
     def test_LogEntry_stores_datetime(self):
-        import datetime
         now = datetime.datetime.now()
         formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         message = "I am logging"
@@ -274,7 +272,6 @@ class LogEntryTest(unittest.TestCase):
         self.assertEqual(data_from_log, formatted_now)
 
     def test_printed_LogEntry_returns_correct_text(self):
-        import datetime
         msg = "The message"
         level = "info"
         now = datetime.datetime.now()
@@ -283,7 +280,14 @@ class LogEntryTest(unittest.TestCase):
         self.assertEqual(entry.__str__(), f"{formatted_now} ; {level} ; {msg}",
                          "LogEntry does not print the way it should")
 
+    def test_LogEntrys_date_can_be_compared_to_other_dates(self):
+        now = datetime.datetime.now()
+        log = LogEntry(msg="Msg", level="info")
+        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        self.assertTrue(log.date <= formatted_now)
+
 class ProfilLoggerReaderTest(unittest.TestCase):
+
 
     def test_logger_reader_cannot_be_created_without_passing_an_argument(self):
         with self.assertRaises(TypeError):
@@ -303,6 +307,13 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         my_handler = FileHandler("logs.txt")
         my_logger_reader = ProfilLoggerReader(my_handler)
         self.assertTrue(isinstance(my_logger_reader, ProfilLoggerReader))
+
+    def test_find_by_text_works_wth_file_handler(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs = my_reader.find_by_text("debug")
+        self.fail("date filtration needed")
+
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
