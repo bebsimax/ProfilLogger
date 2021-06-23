@@ -4,7 +4,7 @@ import inspect
 class ProfilLogger:
     """Stop it, get some help"""
 
-    def __init__(self):
+    def __init__(self, handlers):
         self.levels = {
             "debug": 10,
             "info": 20,
@@ -13,50 +13,46 @@ class ProfilLogger:
             "critical": 50
         }
         self.log_level = "warning"
+        self.handlers = handlers
 
     def set_log_level(self, level):
         if level in self.levels.keys():
             self.log_level = level
 
     def debug(self, msg):
-        """Creates debug log with specified message in log.log file"""
+        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
         method_name = inspect.currentframe().f_code.co_name
-        file = open("log.log", "a")
         if self.levels[method_name] >= self.levels[self.log_level]:
-            file.write(msg + '\n')
-        file.close()
+            for handler in self.handlers:
+                handler.save(LogEntry(msg, method_name))
 
     def info(self, msg):
-        """Creates info log with specified message in log.log file"""
+        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
         method_name = inspect.currentframe().f_code.co_name
-        file = open("log.log", "a")
         if self.levels[method_name] >= self.levels[self.log_level]:
-            file.write(msg + '\n')
-        file.close()
+            for handler in self.handlers:
+                handler.save(LogEntry(msg, method_name))
 
     def warning(self, msg):
-        """Creates warning log with specified message in log.log file"""
+        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
         method_name = inspect.currentframe().f_code.co_name
-        file = open("log.log", "a")
         if self.levels[method_name] >= self.levels[self.log_level]:
-            file.write(msg + '\n')
-        file.close()
+            for handler in self.handlers:
+                handler.save(LogEntry(msg, method_name))
 
     def error(self, msg):
-        """Creates error log with specified message in log.log file"""
+        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
         method_name = inspect.currentframe().f_code.co_name
-        file = open("log.log", "a")
         if self.levels[method_name] >= self.levels[self.log_level]:
-            file.write(msg + '\n')
-        file.close()
+            for handler in self.handlers:
+                handler.save(LogEntry(msg, method_name))
 
     def critical(self, msg):
-        """Creates error log with specified message in log.log file"""
+        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
         method_name = inspect.currentframe().f_code.co_name
-        file = open("log.log", "a")
         if self.levels[method_name] >= self.levels[self.log_level]:
-            file.write(msg + '\n')
-        file.close()
+            for handler in self.handlers:
+                handler.save(LogEntry(msg, method_name))
 
 
 class FileHandler:
@@ -71,7 +67,7 @@ class FileHandler:
 
         log_entry.msg.replace(";", ":")
         with open (self.file_name, "a", newline="\n") as file:
-            file.write(f"{log_entry.date} ; {log_entry.level} ; {log_entry.msg}")
+            file.write(f"{log_entry.date} ; {log_entry.level} ; {log_entry.msg}\n")
 
 
 class LogEntry:
