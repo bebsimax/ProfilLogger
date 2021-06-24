@@ -129,18 +129,16 @@ class FileHandler:
         return logs
 
 
-
-
-
-
-
 class LogEntry:
     """Creates log entries"""
     def __init__(self, msg, level, date=None):
         self.msg = msg
         self.level = level
         if date:
-            self.date = date
+            try:
+                self.date = datetime.datetime.strptime(date, "%b %d %Y %H:%M:%S")
+            except ValueError:
+                print("Wrong format of a date")
         else:
             date = datetime.datetime.now()
             self.date = date.strftime("%b %d %Y %H:%M:%S")
@@ -150,6 +148,13 @@ class LogEntry:
 
     def __str__(self):
         return f"{self.date} ; {self.level} ; {self.msg}"
+
+    def __eq__(self, other):
+        if self.msg == other.msg:
+            if self.level == other.level:
+                if self.date == other.date:
+                    return True
+        return False
 
 
 class ProfilLoggerReader:
@@ -166,7 +171,37 @@ class ProfilLoggerReader:
         self.handler = handler
 
     def find_by_text(self, text, start_date=None, end_date=None):
+        if not isinstance(text, str):
+            raise TypeError("Text needs to be a string")
+
+        # start_date validation
+        if start_date:
+            if not isinstance(start_date, str):
+                raise TypeError("start_date needs to be a string")
+            try:
+                start_date = datetime.datetime.fromisoformat(start_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+        # end_date validation
+        if end_date:
+            if not isinstance(end_date, str):
+                raise TypeError("end_date needs to be a string")
+            try:
+                end_date = datetime.datetime.fromisoformat(end_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+            if end_date < start_date:
+                raise ValueError("end_date needs to be later than start_date")
+
         log_entries = self.handler.read()
-        filtered_logs = [log for log in log_entries if text in log.msg]
-        #TODO: Add filtration by dates
+        # filtration of logs based on passed arguments
+        if not start_date and not end_date:
+            filtered_logs = [log for log in log_entries if text in log.msg]
+        if start_date and not end_date:
+            filtered_logs = [log for log in log_entries if text in log.msg and start_date <= log.date]
+        if not start_date and end_date:
+            filtered_logs = [log for log in log_entries if text in log.msg and log.date <= end_date]
+        if start_date and end_date:
+            filtered_logs = [log for log in log_entries if text in log.msg and start_date <= log.date <= end_date]
+
         return filtered_logs

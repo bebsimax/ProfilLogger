@@ -280,14 +280,14 @@ class LogEntryTest(unittest.TestCase):
         self.assertEqual(entry.__str__(), f"{formatted_now} ; {level} ; {msg}",
                          "LogEntry does not print the way it should")
 
-    def test_LogEntrys_date_can_be_compared_to_other_dates(self):
+    def test_LogEntries_date_can_be_compared_to_other_dates(self):
         now = datetime.datetime.now()
         log = LogEntry(msg="Msg", level="info")
         formatted_now = now.strftime("%b %d %Y %H:%M:%S")
         self.assertTrue(log.date <= formatted_now)
 
-class ProfilLoggerReaderTest(unittest.TestCase):
 
+class ProfilLoggerReaderTest(unittest.TestCase):
 
     def test_logger_reader_cannot_be_created_without_passing_an_argument(self):
         with self.assertRaises(TypeError):
@@ -311,8 +311,30 @@ class ProfilLoggerReaderTest(unittest.TestCase):
     def test_find_by_text_works_wth_file_handler(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
         my_reader = ProfilLoggerReader(handler=my_file_handler)
-        logs = my_reader.find_by_text("debug")
-        self.fail("date filtration needed")
+        self.assertTrue(my_reader.handler is my_file_handler)
+
+    def test_find_by_text_works_with_only_text_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        text = "debug"
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.find_by_text(text=text)
+        all_logs = my_file_handler.read()
+        logs_filtered = [log for log in all_logs if text in log.msg]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_and_start_date_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        text = "info"
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.find_by_text(text=text, start_date=start_date)
+        all_logs = my_file_handler.read()
+        logs_filtered = [log for log in all_logs if text in log.msg and start_date_as_datetime <= log.date]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
 
 
 if __name__ == '__main__':
