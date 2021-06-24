@@ -76,14 +76,14 @@ class UsageTest(unittest.TestCase):
             whole_text = file.read()
             lines = whole_text.splitlines()
             self.assertTrue("My first warning message" in lines[1],
-                             "warning didn't save message to file")
+                            "warning didn't save message to file")
 
     def test_ProfilLoggerReader_returns_LogEntries(self):
         # Jan is satisfied with loggers work so far, but manually checking files made him dizzy
         # So he creates instance of FileHandler
         my_file_handler = FileHandler("my_log.txt")
         # He passes it as an argument to the ProlifLogger, and quickly creates some logs
-        my_logger = ProfilLogger(handlers=my_file_handler)
+        my_logger = ProfilLogger(handlers=[my_file_handler])
         my_logger.set_log_level("debug")
         my_logger.debug("This is debug message")
         my_logger.info("This is info message")
@@ -96,7 +96,10 @@ class UsageTest(unittest.TestCase):
         log_list = my_file_reader.find_by_text("message")
         for log in log_list:
             self.assertTrue(isinstance(log, LogEntry))
-
+        # After that, he checks if method "find_by_regex" returns his logs as a list of LogsEntries
+        regex_log_list = my_file_reader.find_by_regex("[a-g] message")
+        for log in regex_log_list:
+            self.assertTrue(isinstance(log, LogEntry))
 
 
 if __name__ == '__main__':
