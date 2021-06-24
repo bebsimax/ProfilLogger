@@ -125,8 +125,9 @@ class FileHandler:
             whole_file = file.read()
             lines = whole_file.splitlines()
             lines = [line.split(";") for line in lines]
-            logs = [LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip()) for date, level, msg in tuple(lines)]
-        return logs
+            for date, level, msg in tuple(lines):
+                yield LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip())
+
 
 
 class LogEntry:
@@ -193,15 +194,14 @@ class ProfilLoggerReader:
             if end_date < start_date:
                 raise ValueError("end_date needs to be later than start_date")
 
-        log_entries = self.handler.read()
         # filtration of logs based on passed arguments
         if not start_date and not end_date:
-            filtered_logs = [log for log in log_entries if text in log.msg]
+            filtered_logs = [log for log in self.handler.read() if text in log.msg]
         if start_date and not end_date:
-            filtered_logs = [log for log in log_entries if text in log.msg and start_date <= log.date]
+            filtered_logs = [log for log in self.handler.read() if text in log.msg and start_date <= log.date]
         if not start_date and end_date:
-            filtered_logs = [log for log in log_entries if text in log.msg and log.date <= end_date]
+            filtered_logs = [log for log in self.handler.read() if text in log.msg and log.date <= end_date]
         if start_date and end_date:
-            filtered_logs = [log for log in log_entries if text in log.msg and start_date <= log.date <= end_date]
+            filtered_logs = [log for log in self.handler.read() if text in log.msg and start_date <= log.date <= end_date]
 
         return filtered_logs
