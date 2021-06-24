@@ -129,7 +129,6 @@ class FileHandler:
                 yield LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip())
 
 
-
 class LogEntry:
     """Creates log entries"""
     def __init__(self, msg, level, date=None):
@@ -191,8 +190,9 @@ class ProfilLoggerReader:
                 end_date = datetime.datetime.fromisoformat(end_date)
             except ValueError:
                 raise ValueError("Please use iso format")
-            if end_date < start_date:
-                raise ValueError("end_date needs to be later than start_date")
+            if start_date:
+                if end_date < start_date:
+                    raise ValueError("end_date needs to be later than start_date")
 
         # filtration of logs based on passed arguments
         if not start_date and not end_date:
@@ -204,4 +204,48 @@ class ProfilLoggerReader:
         if start_date and end_date:
             filtered_logs = [log for log in self.handler.read() if text in log.msg and start_date <= log.date <= end_date]
 
+        return filtered_logs
+
+    def find_by_regex(self, regex, start_date=None, end_date=None):
+        import re
+        # regex validation
+        if not isinstance(regex, str):
+            raise TypeError("Regex needs to be a string")
+        try:
+            re.compile(regex)
+        except re.error as error:
+            raise re.error(error)
+
+        # start_date validation
+        if start_date:
+            if not isinstance(start_date, str):
+                raise TypeError("start_date needs to be a string")
+            try:
+                start_date = datetime.datetime.fromisoformat(start_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+        # end_date validation
+        if end_date:
+            if not isinstance(end_date, str):
+                raise TypeError("end_date needs to be a string")
+            try:
+                end_date = datetime.datetime.fromisoformat(end_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+            if start_date:
+                if end_date < start_date:
+                    raise ValueError("end_date needs to be later than start_date")
+
+        # filtration of logs based on passed arguments
+        if not start_date and not end_date:
+            filtered_logs = [log for log in self.handler.read() if re.search(regex, log.msg)]
+        if start_date and not end_date:
+            filtered_logs = [log for log in self.handler.read() if re.search(regex, log.msg)
+                                                                and start_date <= log.date]
+        if not start_date and end_date:
+            filtered_logs = [log for log in self.handler.read() if re.search(regex, log.msg)
+                                                                and log.date <= end_date]
+        if start_date and end_date:
+            filtered_logs = [log for log in self.handler.read() if
+                             re.search(regex, log.msg) and start_date <= log.date <= end_date]
         return filtered_logs
