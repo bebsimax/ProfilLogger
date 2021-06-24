@@ -3,6 +3,7 @@ import os
 import sys
 import random
 import datetime
+import re
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
 src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
@@ -329,7 +330,6 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             my_reader.find_by_text(text="hopsa lala", start_date=start_date, end_date=end_date)
 
-
     def test_find_by_text_works_with_only_text_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
         text = "debug"
@@ -381,7 +381,7 @@ class ProfilLoggerReaderTest(unittest.TestCase):
 
     def test_find_by_regex_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        regex = ""
+        regex = r"\d"
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.find_by_regex(regex=regex)
         self.assertEqual(logs_returned, [],
@@ -393,51 +393,51 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         start_date = "2021-06-25"
         end_date = "2021-06-22"
         with self.assertRaises(ValueError):
-            my_reader.find_by_regex(regex="", start_date=start_date, end_date=end_date)
+            my_reader.find_by_regex(regex="\d", start_date=start_date, end_date=end_date)
 
-    def test_find_by_regex_works_with_only_text_input(self):
+    def test_find_by_regex_works_with_only_regex_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        regex = ""
+        regex = r"[a-g] message"
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.find_by_regex(regex=regex)
-        logs_filtered = [log for log in my_file_handler.read() if regex in log.msg]
+        logs_filtered = [log for log in my_file_handler.read() if re.search(regex, log.msg)]
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
 
     def test_find_by_regex_works_with_text_and_start_date_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        regex = ""
+        regex = r"[l-m] message"
         start_date = "2021-06-25"
         start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date)
-        logs_filtered = [log for log in my_file_handler.read() if regex in log.msg
+        logs_filtered = [log for log in my_file_handler.read() if re.search(regex, log.msg)
                          and start_date_as_datetime <= log.date]
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
 
     def test_find_by_regex_works_with_text_and_end_date_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        regex = ""
+        regex = r"[n-p] message"
         end_date = "2021-06-25"
         end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.find_by_regex(regex=regex, end_date=end_date)
-        logs_filtered = [log for log in my_file_handler.read() if regex in log.msg
+        logs_filtered = [log for log in my_file_handler.read() if re.search(regex, log.msg)
                          and log.date <= end_date_as_datetime]
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
 
     def test_find_by_regex_works_with_text_start_and_end_dates_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        regex = ""
+        regex = r"[r-z] message"
         start_date = "2021-06-22"
         end_date = "2021-06-25"
         end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
         start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
         my_reader = ProfilLoggerReader(handler=my_file_handler)
-        logs_returned = my_reader.find_by_regex(text=regex, start_date=start_date, end_date=end_date)
-        logs_filtered = [log for log in my_file_handler.read() if regex in log.msg
+        logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date, end_date=end_date)
+        logs_filtered = [log for log in my_file_handler.read() if re.search(regex, log.msg)
                          and start_date_as_datetime <= log.date <= end_date_as_datetime]
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
@@ -445,4 +445,3 @@ class ProfilLoggerReaderTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
-
