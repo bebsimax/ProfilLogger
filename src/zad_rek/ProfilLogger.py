@@ -300,3 +300,53 @@ class ProfilLoggerReader:
                     log_dict[log.level].append(log)
 
         return log_dict
+
+    def groupby_month(self, start_date=None, end_date=None):
+        # start_date validation
+        if start_date:
+            if not isinstance(start_date, str):
+                raise TypeError("start_date needs to be a string")
+            try:
+                start_date = datetime.datetime.fromisoformat(start_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+        # end_date validation
+        if end_date:
+            if not isinstance(end_date, str):
+                raise TypeError("end_date needs to be a string")
+            try:
+                end_date = datetime.datetime.fromisoformat(end_date)
+            except ValueError:
+                raise ValueError("Please use iso format")
+            if start_date:
+                if end_date < start_date:
+                    raise ValueError("end_date needs to be later than start_date")
+        log_dict = {}
+        if not start_date and not end_date:
+            for log in self.handler.read():
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+
+        if start_date and not end_date:
+            for log in self.handler.read():
+                if start_date <= log.date:
+                    if log.date.month not in log_dict.keys():
+                        log_dict[log.date.month] = []
+                    log_dict[log.date.month].append(log)
+
+        if not start_date and end_date:
+            for log in self.handler.read():
+                if log.date <= end_date:
+                    if log.date.month not in log_dict.keys():
+                        log_dict[log.date.month] = []
+                    log_dict[log.date.month].append(log)
+
+        if start_date and end_date:
+            for log in self.handler.read():
+                if start_date <= log.date <= end_date:
+                    if log.date.month not in log_dict.keys():
+                        log_dict[log.date.month] = []
+                    log_dict[log.date.month].append(log)
+
+        return log_dict

@@ -535,7 +535,7 @@ class ProfilLoggerReaderTest(unittest.TestCase):
 
     def test_groupby_month_works_with_start_date_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        start_date = "2021-06-25"
+        start_date = "2021-06-23"
         start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.groupby_month(start_date=start_date)
@@ -574,7 +574,7 @@ class ProfilLoggerReaderTest(unittest.TestCase):
 
     def test_groupby_month_works_with_start_and_end_dates_input(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
-        start_date = "2021-06-25"
+        start_date = "2021-06-20"
         start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
         end_date = "2021-06-25"
         end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
