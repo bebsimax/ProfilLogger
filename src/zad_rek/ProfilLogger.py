@@ -138,12 +138,12 @@ class LogEntry:
         self.level = level
         if date:
             try:
-                self.date = datetime.datetime.strptime(date, "%b %d %Y %H:%M:%S")
+                self.date = datetime.datetime.strptime(date, "%d %b %Y %H:%M:%S")
             except ValueError:
                 print("Wrong format of a date")
         else:
             date = datetime.datetime.now()
-            self.date = date.strftime("%b %d %Y %H:%M:%S")
+            self.date = date.strftime("%d %b %Y %H:%M:%S")
 
     def __repr__(self):
         return f"LogEntry({self.date}, {self.level}, {self.msg})"
