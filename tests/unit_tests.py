@@ -377,8 +377,6 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
 
-############################################################################
-
     def test_find_by_regex_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
         my_file_handler = FileHandler("FileHandler_sample_data.txt")
         regex = r"\d"
@@ -442,6 +440,81 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         self.assertEqual(logs_returned, logs_filtered,
                          "Logs returned by Reader does not match logs filtered manually")
 
+    def test_groupby_level_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_file_handler = FileHandler("mylog.txt")
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_level(start_date=start_date, end_date=end_date)
+
+    def test_groupby_level_works_with_no_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level()
+        log_dict = {}
+        for log in my_file_handler.read():
+            if log.level not in log_dict.keys():
+                log_dict[log.level] = []
+            log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_date_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_level_works_with_end_date_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(end_date=end_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_and_end_dates_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
