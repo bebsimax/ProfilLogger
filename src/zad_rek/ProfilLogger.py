@@ -120,7 +120,7 @@ class FileHandler:
 
         log_entry.msg.replace(";", ":")
         with open (self.file_name, "a", newline="\n") as file:
-            file.write(f"{log_entry.date} ; {log_entry.level} ; {log_entry.msg}\n")
+            file.write(f"{log_entry.date.strftime('%d %b %Y %H:%M:%S')} ; {log_entry.level} ; {log_entry.msg}\n")
 
     def read(self):
         with open(self.file_name, "r", newline="\n") as file:
@@ -142,14 +142,13 @@ class LogEntry:
             except ValueError:
                 print("Wrong format of a date")
         else:
-            date = datetime.datetime.now()
-            self.date = date.strftime("%d %b %Y %H:%M:%S")
+            self.date = datetime.datetime.now()
 
     def __repr__(self):
         return f"LogEntry({self.date}, {self.level}, {self.msg})"
 
     def __str__(self):
-        return f"{self.date} ; {self.level} ; {self.msg}"
+        return f"{self.date.strftime('%d %b %Y %H:%M:%S')} ; {self.level} ; {self.msg}"
 
     def __eq__(self, other):
         if self.msg == other.msg:
