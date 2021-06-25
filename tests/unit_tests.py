@@ -100,7 +100,7 @@ class ProfilLoggerTest(unittest.TestCase):
         my_logger = ProfilLogger(handlers=[first_handler, second_handler])
         now = datetime.datetime.now()
         my_logger.warning("Are you still there?")
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         with open ("first.txt", "r", newline="\n") as file:
             file_content = file.read()
             lines = file_content.splitlines()
@@ -159,7 +159,7 @@ class FileHandlerTest(unittest.TestCase):
     def test_file_handler_creates_log_txt_by_default(self):
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         file_handler.save(my_log)
         with open ("log.txt", "r", newline="\n") as file:
             file_content = file.read()
@@ -177,7 +177,7 @@ class FileHandlerTest(unittest.TestCase):
     def test_file_handler_creates_log_with_specified_name(self):
         now = datetime.datetime.now()
         my_log = LogEntry("this is message", "this is level")
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         file_handler = FileHandler("sample.txt")
         file_handler.save(my_log)
         with open("sample.txt", "r", newline="\n") as file:
@@ -265,7 +265,7 @@ class LogEntryTest(unittest.TestCase):
 
     def test_LogEntry_stores_datetime(self):
         now = datetime.datetime.now()
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         message = "I am logging"
         level = "debug"
         entry = LogEntry(message, level)
@@ -277,14 +277,14 @@ class LogEntryTest(unittest.TestCase):
         level = "info"
         now = datetime.datetime.now()
         entry = LogEntry(msg, level=level)
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         self.assertEqual(entry.__str__(), f"{formatted_now} ; {level} ; {msg}",
                          "LogEntry does not print the way it should")
 
     def test_LogEntries_date_can_be_compared_to_other_dates(self):
         now = datetime.datetime.now()
         log = LogEntry(msg="Msg", level="info")
-        formatted_now = now.strftime("%b %d %Y %H:%M:%S")
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         self.assertTrue(log.date <= formatted_now)
 
 
@@ -466,6 +466,82 @@ class ProfilLoggerReaderTest(unittest.TestCase):
         start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
         my_reader = ProfilLoggerReader(handler=my_file_handler)
         logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_level_works_with_end_date_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(end_date=end_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_and_end_dates_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_file_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_file_handler = FileHandler("mylog.txt")
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_month(start_date=start_date, end_date=end_date)
+
+    def test_groupby_month_works_with_no_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_month()
+        log_dict = {}
+        for log in my_file_handler.read():
+            if log.level not in log_dict.keys():
+                log_dict[log.level] = []
+            log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_works_with_start_date_input(self):
+        my_file_handler = FileHandler("FileHandler_sample_data.txt")
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_file_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date)
         log_dict = {}
         for log in my_file_handler.read():
             if start_date_as_datetime <= log.date:
