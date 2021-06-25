@@ -10,8 +10,10 @@ class ProfilLogger:
         viable_handlers = [FileHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
-                if not isinstance(handler, viable_handler):
-                    raise TypeError("Unsupported type passed as Handler")
+                if isinstance(handler, viable_handler):
+                    break
+            else:
+                raise TypeError("Unsupported type passed as Handler")
         else:
             return super(ProfilLogger, cls).__new__(cls)
 
@@ -162,10 +164,10 @@ class ProfilLoggerReader:
     def __new__(cls, handler):
         viable_handlers = [FileHandler]
         for viable_handler in viable_handlers:
-            if not isinstance(handler, viable_handler):
-                raise TypeError("Unsupported type passed as Handler")
+            if isinstance(handler, viable_handler):
+                return super(ProfilLoggerReader, cls).__new__(cls)
         else:
-            return super(ProfilLoggerReader, cls).__new__(cls)
+            raise TypeError("Unsupported type passed as Handler")
 
     def __init__(self, handler):
         self.handler = handler
