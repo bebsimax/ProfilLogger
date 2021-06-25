@@ -7,7 +7,7 @@ class ProfilLogger:
     """Stop it, get some help"""
 
     def __new__(cls, handlers):
-        viable_handlers = [FileHandler]
+        viable_handlers = [FileHandler, CSVHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
                 if isinstance(handler, viable_handler):
@@ -104,7 +104,6 @@ class FileHandler:
         return super(FileHandler, cls).__new__(cls)
 
     def __init__(self, file_name="log.txt"):
-
         self.file_name = file_name
 
     def __repr__(self):
@@ -129,6 +128,63 @@ class FileHandler:
             lines = [line.split(";") for line in lines]
             for date, level, msg in tuple(lines):
                 yield LogEntry(msg=msg.strip(), level=level.strip(), date=date.strip())
+
+
+class CSVHandler:
+    """Used to save and read LogEntry to and from .csv file"""
+
+    def __new__(cls, entry="log.csv"):
+
+        if entry == "log.csv":
+            return super(CSVHandler, cls).__new__(cls)
+
+        if not isinstance(entry, str):
+            raise TypeError("Input should be a string")
+
+        if len(entry) <= 4:
+            raise ValueError("File name must be at least 5 characters long and include .csv at the end")
+
+        if len(entry) >= 60:
+            raise ValueError("Length of file name cannot get past 60 characters")
+
+        if entry[-4:] != ".csv":
+            raise ValueError("Passed file name does not end with '.csv'")
+
+        if entry[-5] in [" ", "."]:
+            raise ValueError("It is not possible to have space or dot before .csv in file name")
+
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for character in entry[:-4]:
+            if character in invalid_characters:
+                raise ValueError(f"Any of the following are not allowed in a file name {invalid_characters}")
+        return super(CSVHandler, cls).__new__(cls)
+
+    def __init__(self, file_name="log.csv"):
+        self.file_name = file_name
+
+    def __repr__(self):
+        return f"CSVHandler({self.file_name})"
+
+    def __str__(self):
+        return self.file_name
+
+    def save(self, log_entry):
+        """Saves given LogEntry to a csv file"""
+        import csv
+        with open(self.file_name, "a", newline='') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=',')
+            csv_writer.writerow([log_entry.date.strftime('%d %b %Y %H:%M:%S'), log_entry.level, log_entry.msg])
+
+    def read(self):
+        """Yields LogEntry from a csv file"""
+        import csv
+        with open(self.file_name, "r") as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                yield LogEntry(msg=row[2], level=row[1], date=row[0])
+
+
+
 
 
 class LogEntry:
@@ -161,7 +217,7 @@ class LogEntry:
 class ProfilLoggerReader:
 
     def __new__(cls, handler):
-        viable_handlers = [FileHandler]
+        viable_handlers = [FileHandler, CSVHandler]
         for viable_handler in viable_handlers:
             if isinstance(handler, viable_handler):
                 return super(ProfilLoggerReader, cls).__new__(cls)
