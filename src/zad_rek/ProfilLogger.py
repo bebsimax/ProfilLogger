@@ -1,13 +1,13 @@
-import os
 import inspect
 import datetime
 import json
+
 
 class ProfilLogger:
     """Stop it, get some help"""
 
     def __new__(cls, handlers):
-        viable_handlers = [FileHandler, CSVHandler, JsonHandler]
+        viable_handlers = [FileHandler, CSVHandler, JsonHandler, SQLLiteHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
                 if isinstance(handler, viable_handler):
@@ -181,7 +181,7 @@ class CSVHandler:
         with open(self.file_name, "r") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                yield LogEntry(msg=row[2], level=row[1], date=row[0])
+                yield LogEntry(date=row[0], level=row[1], msg=row[2])
 
 
 class JsonHandler:
@@ -189,14 +189,14 @@ class JsonHandler:
 
     def __new__(cls, entry="log.json"):
 
-        if entry == "json.csv":
+        if entry == "log.json":
             return super(JsonHandler, cls).__new__(cls)
 
         if not isinstance(entry, str):
             raise TypeError("Input should be a string")
 
         if len(entry) <= 5:
-            raise ValueError("File name must be at least 5 characters long and include .csv at the end")
+            raise ValueError("File name must be at least 6 characters long and include .json at the end")
 
         if len(entry) >= 60:
             raise ValueError("Length of file name cannot get past 60 characters")
@@ -240,6 +240,61 @@ class JsonHandler:
             for line in json_file:
                 yield LogEntry(msg=json.loads(line)["msg"], level=json.loads(line)["level"], date=json.loads(line)["date"])
 
+
+class SQLLiteHandler:
+    """Used to save and read LogEntry to and from .sqlite file"""
+
+    def __new__(cls, entry="log.sqlite"):
+
+        if entry == "log.sqlite":
+            return super(SQLLiteHandler, cls).__new__(cls)
+
+        if not isinstance(entry, str):
+            raise TypeError("Input should be a string")
+
+        if len(entry) <= 7:
+            raise ValueError("File name must be at least 8 characters long and include .sqlite at the end")
+
+        if len(entry) >= 60:
+            raise ValueError("Length of file name cannot get past 60 characters")
+
+        if entry[-7:] != ".sqlite":
+            raise ValueError("Passed file name does not end with '.sqlite'")
+
+        if entry[-8] in [" ", "."]:
+            raise ValueError("It is not possible to have space or dot before .sqlite in file name")
+
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for character in entry[:-7]:
+            if character in invalid_characters:
+                raise ValueError(f"Any of the following are not allowed in a file name {invalid_characters}")
+        return super(SQLLiteHandler, cls).__new__(cls)
+
+    def __init__(self, file_name="log.sqlite"):
+        self.file_name = file_name
+
+    def save(self, log_entry):
+        """Saves given LogEntry to a sqlite file"""
+        import sqlite3
+        connection = sqlite3.connect(self.file_name)
+        cursor = connection.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS logs (date VARCHAR, level VARCHAR, msg VARCHAR);")
+        cursor.execute(f"INSERT INTO logs (date, level, msg) VALUES "
+                       f"('{log_entry.date.strftime('%d %b %Y %H:%M:%S')}',"
+                       f"'{log_entry.level}',"
+                       f"'{log_entry.msg}');")
+        connection.commit()
+        connection.close()
+
+    def read(self):
+        import sqlite3
+        connection = sqlite3.connect(self.file_name)
+        cursor = connection.cursor()
+        for row in cursor.execute("SELECT * FROM logs"):
+            yield LogEntry(date=row[0], level=row[1], msg=row[2])
+        connection.close()
+
+
 class LogEntry:
     """Creates log entries"""
     def __init__(self, msg, level, date=None):
@@ -270,7 +325,7 @@ class LogEntry:
 class ProfilLoggerReader:
 
     def __new__(cls, handler):
-        viable_handlers = [FileHandler, CSVHandler, JsonHandler]
+        viable_handlers = [FileHandler, CSVHandler, JsonHandler, SQLLiteHandler]
         for viable_handler in viable_handlers:
             if isinstance(handler, viable_handler):
                 return super(ProfilLoggerReader, cls).__new__(cls)
