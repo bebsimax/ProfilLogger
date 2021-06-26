@@ -1124,5 +1124,270 @@ class ProfilLoggerReaderCSVHandlerTest(unittest.TestCase):
                          "Dict returned by Reader does not match dict created manually")
 
 
+class ProfilLoggerReaderJsonHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global my_json_handler
+        my_json_handler = JsonHandler("JsonHandler_sample_data.json")
+
+    def test_reader_saves_file_handler_in_his_instance(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        self.assertTrue(my_reader.handler is my_json_handler)
+
+    def test_find_by_text_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
+        text = "You never had a friend like me"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_text(text=text)
+        self.assertEqual(logs_returned, [],
+                         "Reader didn't return empty list")
+
+    def test_find_by_text_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.find_by_text(text="hopsa lala", start_date=start_date, end_date=end_date)
+
+    def test_find_by_text_works_with_only_text_input(self):
+        text = "debug"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_text(text=text)
+        logs_filtered = [log for log in my_json_handler.read() if text in log.msg]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_and_start_date_input(self):
+        text = "info"
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_text(text=text, start_date=start_date)
+        logs_filtered = [log for log in my_json_handler.read() if text in log.msg
+                         and start_date_as_datetime <= log.date]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_and_end_date_input(self):
+        text = "warning"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_text(text=text, end_date=end_date)
+        logs_filtered = [log for log in my_json_handler.read() if text in log.msg
+                         and log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_start_and_end_dates_input(self):
+        text = "error"
+        start_date = "2021-06-22"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_text(text=text, start_date=start_date, end_date=end_date)
+        logs_filtered = [log for log in my_json_handler.read() if text in log.msg
+                         and start_date_as_datetime <= log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
+        regex = r"\d"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex)
+        self.assertEqual(logs_returned, [],
+                         "Reader didn't return empty list")
+
+    def test_find_by_regex_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.find_by_regex(regex="\d", start_date=start_date, end_date=end_date)
+
+    def test_find_by_regex_works_with_only_regex_input(self):
+        regex = r"[a-g] message"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex)
+        logs_filtered = [log for log in my_json_handler.read() if re.search(regex, log.msg)]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_and_start_date_input(self):
+        regex = r"[l-m] message"
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date)
+        logs_filtered = [log for log in my_json_handler.read() if re.search(regex, log.msg)
+                         and start_date_as_datetime <= log.date]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_and_end_date_input(self):
+        regex = r"[n-p] message"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, end_date=end_date)
+        logs_filtered = [log for log in my_json_handler.read() if re.search(regex, log.msg)
+                         and log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_start_and_end_dates_input(self):
+        regex = r"[r-z] message"
+        start_date = "2021-06-22"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date, end_date=end_date)
+        logs_filtered = [log for log in my_json_handler.read() if re.search(regex, log.msg)
+                         and start_date_as_datetime <= log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_groupby_level_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_level(start_date=start_date, end_date=end_date)
+
+    def test_groupby_level_works_with_no_input(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_level()
+        log_dict = {}
+        for log in my_json_handler.read():
+            if log.level not in log_dict.keys():
+                log_dict[log.level] = []
+            log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_date_input(self):
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_level_works_with_end_date_input(self):
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_level(end_date=end_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_and_end_dates_input(self):
+        start_date = "2021-06-20"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-07-13"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_month(start_date=start_date, end_date=end_date)
+
+    def test_groupby_month_works_with_no_input(self):
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_month()
+        log_dict = {}
+        for log in my_json_handler.read():
+            if log.date.month not in log_dict.keys():
+                log_dict[log.date.month] = []
+            log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_works_with_start_date_input(self):
+        start_date = "2021-06-23"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_month_works_with_end_date_input(self):
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_month(end_date=end_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_works_with_start_and_end_dates_input(self):
+        start_date = "2021-06-20"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_json_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_json_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
