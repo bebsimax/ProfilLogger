@@ -1,13 +1,13 @@
 import os
 import inspect
 import datetime
-
+import json
 
 class ProfilLogger:
     """Stop it, get some help"""
 
     def __new__(cls, handlers):
-        viable_handlers = [FileHandler, CSVHandler]
+        viable_handlers = [FileHandler, CSVHandler, JsonHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
                 if isinstance(handler, viable_handler):
@@ -184,14 +184,65 @@ class CSVHandler:
                 yield LogEntry(msg=row[2], level=row[1], date=row[0])
 
 
+class JsonHandler:
+    """Used to save and read LogEntry to and from .json file"""
 
+    def __new__(cls, entry="log.json"):
 
+        if entry == "json.csv":
+            return super(JsonHandler, cls).__new__(cls)
+
+        if not isinstance(entry, str):
+            raise TypeError("Input should be a string")
+
+        if len(entry) <= 5:
+            raise ValueError("File name must be at least 5 characters long and include .csv at the end")
+
+        if len(entry) >= 60:
+            raise ValueError("Length of file name cannot get past 60 characters")
+
+        if entry[-5:] != ".json":
+            raise ValueError("Passed file name does not end with '.json'")
+
+        if entry[-6] in [" ", "."]:
+            raise ValueError("It is not possible to have space or dot before .json in file name")
+
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for character in entry[:-5]:
+            if character in invalid_characters:
+                raise ValueError(f"Any of the following are not allowed in a file name {invalid_characters}")
+        return super(JsonHandler, cls).__new__(cls)
+
+    def __init__(self, file_name="log.json"):
+        self.file_name = file_name
+
+    def __repr__(self):
+        return f"JsonHandler({self.file_name})"
+
+    def __str__(self):
+        return self.file_name
+
+    def save(self, log_entry):
+        """Saves given LogEntry to a json file"""
+
+        class LogEncoder(json.JSONEncoder):
+            def default(self, log):
+                log.date = log.date.strftime('%d %b %Y %H:%M:%S')
+                return log.__dict__
+
+        with open(self.file_name, "a", newline='\n') as json_file:
+            json.dump(log_entry, json_file, cls=LogEncoder)
+            json_file.write('\n')
+
+    def read(self):
+        """Yields LogEntry from a json file"""
+        with open(self.file_name, 'r') as json_file:
+            for line in json_file:
+                yield LogEntry(msg=json.loads(line)["msg"], level=json.loads(line)["level"], date=json.loads(line)["date"])
 
 class LogEntry:
     """Creates log entries"""
     def __init__(self, msg, level, date=None):
-        self.msg = msg
-        self.level = level
         if date:
             try:
                 self.date = datetime.datetime.strptime(date, "%d %b %Y %H:%M:%S")
@@ -199,6 +250,8 @@ class LogEntry:
                 print("Wrong format of a date")
         else:
             self.date = datetime.datetime.now()
+        self.level = level
+        self.msg = msg
 
     def __repr__(self):
         return f"LogEntry({self.date}, {self.level}, {self.msg})"
