@@ -270,7 +270,7 @@ class LogEntry:
 class ProfilLoggerReader:
 
     def __new__(cls, handler):
-        viable_handlers = [FileHandler, CSVHandler]
+        viable_handlers = [FileHandler, CSVHandler, JsonHandler]
         for viable_handler in viable_handlers:
             if isinstance(handler, viable_handler):
                 return super(ProfilLoggerReader, cls).__new__(cls)
