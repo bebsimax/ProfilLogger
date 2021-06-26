@@ -4,9 +4,21 @@ import json
 
 
 class ProfilLogger:
-    """Stop it, get some help"""
+    """Class to save logs to the handlers
+
+    Attributes:
+        handlers (list): List of Handlers, viable Handlers are: FileHandler, CSVHandler, JsonHandler, SQLLiteHandler
+        levels (dict): Dict of levels and it's values, the values are used to determine the order of levels
+        log_level (str): One of levels keys, only logs with level equal or greater than levels[log_level] will be saved
+    """
 
     def __new__(cls, handlers):
+        """ProfilLogger constructor, implemented to avoid creation of Logger with wrong Type Handlers
+
+        Args:
+            handlers (list): List of Handlers, viable Handlers are: FileHandler, CSVHandler, JsonHandler, SQLLiteHandler
+        """
+
         viable_handlers = [FileHandler, CSVHandler, JsonHandler, SQLLiteHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
@@ -18,6 +30,12 @@ class ProfilLogger:
             return super(ProfilLogger, cls).__new__(cls)
 
     def __init__(self, handlers):
+        """ProfilLogger initializer
+
+        Args:
+            handlers (list): List of Handlers, viable Handlers are: FileHandler, CSVHandler, JsonHandler, SQLLiteHandler
+         """
+
         self.levels = {
             "debug": 10,
             "info": 20,
@@ -29,45 +47,77 @@ class ProfilLogger:
         self.handlers = handlers
 
     def __repr__(self):
+        """repr used for developers"""
         return f"ProfiLogger(handlers={self.handlers})"
 
     def __str__(self):
+        """str used for users"""
         return self.handlers
 
     def set_log_level(self, level):
+        """Method used to change log_level of a ProfilLogger
+        Args:
+            level (str): level from a levels keys
+
+        """
         if level in self.levels.keys():
             self.log_level = level
 
     def debug(self, msg):
-        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
+        """Method used to create LogEntry with current date and message and debug level for every Handler,
+        if the log_level is set below debug the LogEntry will not be created
+
+        Args:
+            msg (str): Message that will be saved in LogEntry
+        """
         method_name = inspect.currentframe().f_code.co_name
         if self.levels[method_name] >= self.levels[self.log_level]:
             for handler in self.handlers:
                 handler.save(LogEntry(msg, method_name))
 
     def info(self, msg):
-        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
+        """Method used to create LogEntry with current date and message and info level for every Handler,
+        if the log_level is set below info the LogEntry will not be created
+
+        Args:
+            msg (str): Message that will be saved in LogEntry
+        """
         method_name = inspect.currentframe().f_code.co_name
         if self.levels[method_name] >= self.levels[self.log_level]:
             for handler in self.handlers:
                 handler.save(LogEntry(msg, method_name))
 
     def warning(self, msg):
-        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
+        """Method used to create LogEntry with current date and message and warning level for every Handler,
+        if the log_level is set below warning the LogEntry will not be created
+
+        Args:
+            msg (str): Message that will be saved in LogEntry
+        """
         method_name = inspect.currentframe().f_code.co_name
         if self.levels[method_name] >= self.levels[self.log_level]:
             for handler in self.handlers:
                 handler.save(LogEntry(msg, method_name))
 
     def error(self, msg):
-        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
+        """Method used to create LogEntry with current date and message and error level for every Handler,
+        if the log_level is set below error the LogEntry will not be created
+
+        Args:
+            msg (str): Message that will be saved in LogEntry
+        """
         method_name = inspect.currentframe().f_code.co_name
         if self.levels[method_name] >= self.levels[self.log_level]:
             for handler in self.handlers:
                 handler.save(LogEntry(msg, method_name))
 
     def critical(self, msg):
-        """Creates LogEntry with given msg, and passes it to the save method of every handler"""
+        """Method used to create LogEntry with current date and message and critical level for every Handler,
+        if the log_level is set below critical the LogEntry will not be created
+
+        Args:
+            msg (str): Message that will be saved in LogEntry
+        """
         method_name = inspect.currentframe().f_code.co_name
         if self.levels[method_name] >= self.levels[self.log_level]:
             for handler in self.handlers:
@@ -75,9 +125,18 @@ class ProfilLogger:
 
 
 class FileHandler:
-    """Used to save LogEntry to a .txt file"""
+    """Class used to save and read LogEntry to and from .txt file
+
+    Attributes:
+        file_name (str): Name of a file to save to, or to read from. It works in current working directory.
+    """
 
     def __new__(cls, entry="log.txt"):
+        """FileHandler constructor creates instance only if entry is viable file name in all OS
+
+        Args:
+        entry (Optional[str]): name of a file to save to or read from, will default to log.txt if not specified
+        """
 
         if entry == "log.txt":
             return super(FileHandler, cls).__new__(cls)
@@ -104,24 +163,35 @@ class FileHandler:
         return super(FileHandler, cls).__new__(cls)
 
     def __init__(self, file_name="log.txt"):
+        """FileHandler initializer
+
+        Args:
+            file_name (Optional[str]): name of a file to save to or read from, will default to log.txt if not specified
+        """
         self.file_name = file_name
 
     def __repr__(self):
+        """repr used for developers"""
         return f"FileHandler({self.file_name})"
 
     def __str__(self):
+        """str used for users"""
         return self.file_name
 
     def save(self, log_entry):
-        """Saves given LogEntry to a txt file
+        """Saves LogEntry to a txt file specified in file_name
         separates date, level, msg with ;
-        if LogEntry.msg contains ; it is replaced with :"""
+        if LogEntry.msg contains ; it is replaced with :
 
+        Args:
+            log_entry (LogEntry): Instance of LogEntry class, containing date, level and msg
+        """
         log_entry.msg.replace(";", ":")
         with open (self.file_name, "a", newline="\n") as file:
             file.write(f"{log_entry.date.strftime('%d %b %Y %H:%M:%S')} ; {log_entry.level} ; {log_entry.msg}\n")
 
     def read(self):
+        """Yields LogEntry from file specified in file_name"""
         with open(self.file_name, "r", newline="\n") as file:
             whole_file = file.read()
             lines = whole_file.splitlines()
@@ -131,10 +201,18 @@ class FileHandler:
 
 
 class CSVHandler:
-    """Used to save and read LogEntry to and from .csv file"""
+    """Class used to save and read LogEntry to and from .csv file
+
+    Attributes:
+        file_name (str): Name of a file to save to, or to read from. It works in current working directory.
+    """
 
     def __new__(cls, entry="log.csv"):
+        """CSVHandler constructor creates instance only if entry is viable file name in all OS
 
+            Args:
+                entry (Optional[str]): name of a file to save to or read from, will default to log.csv if not specified
+        """
         if entry == "log.csv":
             return super(CSVHandler, cls).__new__(cls)
 
@@ -160,23 +238,34 @@ class CSVHandler:
         return super(CSVHandler, cls).__new__(cls)
 
     def __init__(self, file_name="log.csv"):
+        """CSVHandler initializer
+
+            Args:
+                file_name (Optional[str]): name of a file to save to or read from, will default to log.csv if not specified
+        """
         self.file_name = file_name
 
     def __repr__(self):
+        """repr for developers"""
         return f"CSVHandler({self.file_name})"
 
     def __str__(self):
+        """str for users"""
         return self.file_name
 
     def save(self, log_entry):
-        """Saves given LogEntry to a csv file"""
+        """Saves LogEntry to a csv file specified in file_name
+
+        Args:
+            log_entry (LogEntry): Instance of LogEntry class, containing date, level and msg
+        """
         import csv
         with open(self.file_name, "a", newline='') as csv_file:
             csv_writer = csv.writer(csv_file, delimiter=',')
             csv_writer.writerow([log_entry.date.strftime('%d %b %Y %H:%M:%S'), log_entry.level, log_entry.msg])
 
     def read(self):
-        """Yields LogEntry from a csv file"""
+        """Yields LogEntry from file specified in file_name"""
         import csv
         with open(self.file_name, "r") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
@@ -185,10 +274,18 @@ class CSVHandler:
 
 
 class JsonHandler:
-    """Used to save and read LogEntry to and from .json file"""
+    """Class used to save and read LogEntry to and from .json file
+
+    Attributes:
+        file_name (str): Name of a file to save to, or to read from. It works in current working directory.
+    """
 
     def __new__(cls, entry="log.json"):
+        """JsonHandler constructor creates instance only if entry is viable file name in all OS
 
+            Args:
+                entry (Optional[str]): name of a file to save to or read from, will default to log.json if not specified
+        """
         if entry == "log.json":
             return super(JsonHandler, cls).__new__(cls)
 
@@ -214,16 +311,27 @@ class JsonHandler:
         return super(JsonHandler, cls).__new__(cls)
 
     def __init__(self, file_name="log.json"):
+        """JsonHandler initializer
+
+            Args:
+                file_name (Optional[str]): name of a file to save to or read from, will default to log.json if not specified
+        """
         self.file_name = file_name
 
     def __repr__(self):
+        """repr for developers"""
         return f"JsonHandler({self.file_name})"
 
     def __str__(self):
+        """str for users"""
         return self.file_name
 
     def save(self, log_entry):
-        """Saves given LogEntry to a json file"""
+        """Saves LogEntry to a json file specified in file_name
+
+        Args:
+            log_entry (LogEntry): Instance of LogEntry class, containing date, level and msg
+        """
 
         class LogEncoder(json.JSONEncoder):
             def default(self, log):
@@ -235,16 +343,25 @@ class JsonHandler:
             json_file.write('\n')
 
     def read(self):
-        """Yields LogEntry from a json file"""
+        """Yields LogEntry from file specified in file_name"""
         with open(self.file_name, 'r') as json_file:
             for line in json_file:
                 yield LogEntry(msg=json.loads(line)["msg"], level=json.loads(line)["level"], date=json.loads(line)["date"])
 
 
 class SQLLiteHandler:
-    """Used to save and read LogEntry to and from .sqlite file"""
+    """Class used to save and read LogEntry to and from .sqlite file
+
+    Attributes:
+        file_name (str): Name of a file to save to, or to read from. It works in current working directory.
+    """
 
     def __new__(cls, entry="log.sqlite"):
+        """SQLLiteHandler constructor creates instance only if entry is viable file name in all OS
+
+            Args:
+                entry (Optional[str]): name of a file to save to or read from, will default to log.sqlite if not specified
+        """
 
         if entry == "log.sqlite":
             return super(SQLLiteHandler, cls).__new__(cls)
@@ -271,10 +388,19 @@ class SQLLiteHandler:
         return super(SQLLiteHandler, cls).__new__(cls)
 
     def __init__(self, file_name="log.sqlite"):
+        """SQLLiteHandler initializer
+
+            Args:
+                file_name (Optional[str]): name of a file to save to or read from, will default to log.sqlite if not specified
+        """
         self.file_name = file_name
 
     def save(self, log_entry):
-        """Saves given LogEntry to a sqlite file"""
+        """Saves LogEntry to a sqlite file specified in file_name
+
+        Args:
+            log_entry (LogEntry): Instance of LogEntry class, containing date, level and msg
+        """
         import sqlite3
         connection = sqlite3.connect(self.file_name)
         cursor = connection.cursor()
@@ -287,6 +413,7 @@ class SQLLiteHandler:
         connection.close()
 
     def read(self):
+        """Yields LogEntry from file specified in file_name"""
         import sqlite3
         connection = sqlite3.connect(self.file_name)
         cursor = connection.cursor()
@@ -296,8 +423,23 @@ class SQLLiteHandler:
 
 
 class LogEntry:
-    """Creates log entries"""
+    """Class used to represent logs
+
+    Attributes:
+        msg (str): Message of the log
+        level (str): Level of the log
+        date Optional([datetime]): Instance of datetime containing the date that the log was created,
+        if not specified will default to current system's date
+    """
     def __init__(self, msg, level, date=None):
+        """LogEntry initializer
+
+        Args:
+            msg (str): Initializes the msg attribute
+            level (str): Initializes the level attribute
+            date Optional([str]): Initializes the date attribute, works only with date in "%d %b %Y %H:%M:%S" format
+            if date is not specified will default to current system's date
+        """
         if date:
             try:
                 self.date = datetime.datetime.strptime(date, "%d %b %Y %H:%M:%S")
@@ -309,12 +451,20 @@ class LogEntry:
         self.msg = msg
 
     def __repr__(self):
+        """repr for developers"""
         return f"LogEntry({self.date}, {self.level}, {self.msg})"
 
     def __str__(self):
+        """str for users"""
         return f"{self.date.strftime('%d %b %Y %H:%M:%S')} ; {self.level} ; {self.msg}"
 
     def __eq__(self, other):
+        """method used during comparison of two LogEntry objects, returns True if both contain the same informations
+        else returns False
+
+        Args:
+            other (LogEntry): Instance of LogEntry class, containing date, level and msg
+        """
         if self.msg == other.msg:
             if self.level == other.level:
                 if self.date == other.date:
@@ -323,8 +473,18 @@ class LogEntry:
 
 
 class ProfilLoggerReader:
+    """Class used to receive filtered list of LogEntry instances
+
+    Attributes:
+        handler (Handler): Instance of a valid Handler
+    """
 
     def __new__(cls, handler):
+        """ProfilLoggerReader constructor prevents creation of LoggerReader with invalid Handler
+
+        Args:
+            handler (Handler): Instance of a valid Handler
+        """
         viable_handlers = [FileHandler, CSVHandler, JsonHandler, SQLLiteHandler]
         for viable_handler in viable_handlers:
             if isinstance(handler, viable_handler):
@@ -333,9 +493,22 @@ class ProfilLoggerReader:
             raise TypeError("Unsupported type passed as Handler")
 
     def __init__(self, handler):
+        """ProfilLoggerReader initializer
+
+        Args:
+            handler (Handler): Initializes the handler value
+        """
         self.handler = handler
 
     def find_by_text(self, text, start_date=None, end_date=None):
+        """Method used to get filter list of LogEntry instances from file specified in handler's file_name
+        Needs to filter by text, can also filter by dates
+
+        Args:
+            text (str): Text that LogEntry.msg must contain
+            start_date Optional([str]): Date in iso format. If passed will filter logs with date past the start_date
+            end_date Optional([str]): Date in iso format. If passed will filter logs with date before the end_date.:
+        """
         if not isinstance(text, str):
             raise TypeError("Text needs to be a string")
 
@@ -372,6 +545,14 @@ class ProfilLoggerReader:
         return filtered_logs
 
     def find_by_regex(self, regex, start_date=None, end_date=None):
+        """Method used to get filter list of LogEntry instances from file specified in handler's file_name
+            Needs to filter by regular expression, can also filter by dates
+
+            Args:
+                regex (str): Valid regular expression, will be searched for in LogEntry.msg
+                start_date Optional([str]): Date in iso format. If passed will filter logs with date past the start_date
+                end_date Optional([str]): Date in iso format. If passed will filter logs with date before the end_date
+        """
         import re
         # regex validation
         if not isinstance(regex, str):
@@ -416,6 +597,13 @@ class ProfilLoggerReader:
         return filtered_logs
 
     def groupby_level(self, start_date=None, end_date=None):
+        """Method used to get grouped by level dict of LogEntry instances from file specified in handler's file_name
+            Can filter by dates
+
+            Args:
+                start_date Optional([str]): Date in iso format. If passed will filter logs with date past the start_date
+                end_date Optional([str]): Date in iso format. If passed will filter logs with date before the end_date
+        """
         # start_date validation
         if start_date:
             if not isinstance(start_date, str):
@@ -466,6 +654,13 @@ class ProfilLoggerReader:
         return log_dict
 
     def groupby_month(self, start_date=None, end_date=None):
+        """Method used to get grouped by month dict of LogEntry instances from file specified in handler's file_name
+            Can filter by dates
+
+            Args:
+                start_date Optional([str]): Date in iso format. If passed will filter logs with date past the start_date
+                end_date Optional([str]): Date in iso format. If passed will filter logs with date before the end_date
+        """
         # start_date validation
         if start_date:
             if not isinstance(start_date, str):
