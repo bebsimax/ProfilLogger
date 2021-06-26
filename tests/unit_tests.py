@@ -6,13 +6,14 @@ import datetime
 import re
 import csv
 import json
+import sqlite3
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
 src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler, JsonHandler
+from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler, JsonHandler, SQLLiteHandler
 
 
 class ProfilLoggerTest(unittest.TestCase):
@@ -219,6 +220,189 @@ class ProfilLoggerCSVHandlerTest(unittest.TestCase):
             pass
         try:
             os.remove('second.csv')
+        except OSError:
+            pass
+
+
+class ProfilLoggerJsonHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global logger
+        logger = ProfilLogger(handlers=[JsonHandler()])
+
+    def tearDown(self):
+        try:
+            os.remove('log.json')
+        except OSError as error:
+            pass
+
+    def test_logger_can_save_message_to_json_file(self):
+        logger.warning("This is your last warning")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertIn("log.json", files,
+                      "Warning method didn't create log.json file")
+        with open("log.json", "r") as json_file:
+            for row in json_file:
+                self.assertTrue("This is your last warning" in json.loads(row)["msg"],
+                                "didn't save message to json file")
+
+    def test_logger_saves_all_log_levels_that_he_needs_to_save(self):
+        levels = list(logger.levels.keys())
+        selected_level = random.choice(levels)
+        logger.set_log_level(selected_level)
+        levels_to_write = [name for name in levels if logger.levels[selected_level] <= logger.levels[name]]
+        for method in levels:
+            class_method = getattr(logger, method)
+            class_method(f"This is test message for {method}")
+        with open("log.json", "r") as json_file:
+            for method in levels_to_write:
+                for row in json_file:
+                    if f"This is test message for {method}" in json.loads(row)["msg"]:
+                        break
+                else:
+                    self.fail(f"{method} didn't create a sample text")
+
+    def test_logger_does_not_save_logs_that_do_not_need_to_be_saved(self):
+        levels = list(logger.levels.keys())
+        selected_level = random.choice(levels)
+        logger.set_log_level(selected_level)
+        levels_to_write = [name for name in levels if logger.levels[selected_level] <= logger.levels[name]]
+        for method in levels:
+            class_method = getattr(logger, method)
+            class_method(f"This is test message for {method}")
+        with open("log.json", "r") as json_file:
+            levels_not_to_write = set(levels) - set(levels_to_write)
+            for method in levels_not_to_write:
+                for row in json_file:
+                    if f"This is test message for {method}" in json.loads(row)["msg"]:
+                        self.fail(f"{method} created log when it shouldn't")
+
+    def test_logger_can_save_to_two_json_files_at_once(self):
+        import datetime
+        first_handler = JsonHandler("first.json")
+        second_handler = JsonHandler("second.json")
+        my_logger = ProfilLogger(handlers=[first_handler, second_handler])
+        now = datetime.datetime.now()
+        msg = "Are you still there?"
+        my_logger.warning(msg)
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
+        with open("first.json", "r") as json_file:
+            for row in json_file:
+                line_in_first = row
+                self.assertEqual(f"{json.loads(row)['date']},{json.loads(row)['level']},{json.loads(row)['msg']}",
+                                 f"{formatted_now},warning,{msg}",
+                                 "Warning didn't save message to the first.json file")
+        with open("second.json", "r") as json_file:
+            for row in json_file:
+                line_in_second = row
+                self.assertEqual(f"{json.loads(row)['date']},{json.loads(row)['level']},{json.loads(row)['msg']}",
+                                 f"{formatted_now},warning,{msg}",
+                                 "Warning didn't save message to the second.json file")
+
+                self.assertEqual(line_in_first, line_in_second,
+                                "Saved lines aren't equal")
+        try:
+            os.remove('first.json')
+        except OSError:
+            pass
+        try:
+            os.remove('second.json')
+        except OSError:
+            pass
+
+
+class ProfilLoggerSQLLiteHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global logger
+        logger = ProfilLogger(handlers=[SQLLiteHandler()])
+
+    def tearDown(self):
+        try:
+            os.remove('log.sqlite')
+        except OSError as error:
+            pass
+
+    def test_logger_can_save_message_to_sqlite_file(self):
+        logger.warning("This is your last warning")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertIn("log.sqlite", files,
+                      "Warning method didn't create log.sqlite file")
+        connection = sqlite3.connect("log.sqlite")
+        cursor = connection.cursor()
+        for row in cursor.execute("SELECT * FROM logs"):
+            self.assertTrue("This is your last warning" in row[2],
+                            "didn't save message to sqlite file")
+
+    def test_logger_saves_all_log_levels_that_he_needs_to_save(self):
+        levels = list(logger.levels.keys())
+        selected_level = random.choice(levels)
+        logger.set_log_level(selected_level)
+        levels_to_write = [name for name in levels if logger.levels[selected_level] <= logger.levels[name]]
+        for method in levels:
+            class_method = getattr(logger, method)
+            class_method(f"This is test message for {method}")
+        connection = sqlite3.connect("log.sqlite")
+        cursor = connection.cursor()
+        for method in levels_to_write:
+            for row in cursor.execute("SELECT * FROM logs"):
+                if f"This is test message for {method}" in row[2]:
+                    break
+            else:
+                self.fail(f"{method} didn't create a sample text")
+
+    def test_logger_does_not_save_logs_that_do_not_need_to_be_saved(self):
+        levels = list(logger.levels.keys())
+        selected_level = random.choice(levels)
+        logger.set_log_level(selected_level)
+        levels_to_write = [name for name in levels if logger.levels[selected_level] <= logger.levels[name]]
+        for method in levels:
+            class_method = getattr(logger, method)
+            class_method(f"This is test message for {method}")
+        connection = sqlite3.connect("log.sqlite")
+        cursor = connection.cursor()
+        levels_not_to_write = set(levels) - set(levels_to_write)
+        for method in levels_not_to_write:
+            for row in cursor.execute("SELECT * FROM logs"):
+                if f"This is test message for {method}" in row[2]:
+                    self.fail(f"{method} created log when it shouldn't")
+
+    def test_logger_can_save_to_two_sqlite_files_at_once(self):
+        import datetime
+        first_handler = SQLLiteHandler("first.sqlite")
+        second_handler = SQLLiteHandler("second.sqlite")
+        my_logger = ProfilLogger(handlers=[first_handler, second_handler])
+        now = datetime.datetime.now()
+        msg = "Are you still there?"
+        my_logger.warning(msg)
+        formatted_now = now.strftime("%d %b %Y %H:%M:%S")
+        connection = sqlite3.connect("first.sqlite")
+        cursor = connection.cursor()
+        for row in cursor.execute("SELECT * FROM logs"):
+            line_in_first = row
+            self.assertEqual(f"{row[0]},{row[1]},{row[2]}",
+                             f"{formatted_now},warning,{msg}",
+                             "Warning didn't save message to the first.sqlite file")
+        connection.close()
+        connection = sqlite3.connect("second.sqlite")
+        cursor = connection.cursor()
+        for row in cursor.execute("SELECT * FROM logs"):
+            line_in_second = row
+            self.assertEqual(f"{row[0]},{row[1]},{row[2]}",
+                             f"{formatted_now},warning,{msg}",
+                             "Warning didn't save message to the second.sqlite file")
+        connection.close()
+
+        self.assertEqual(line_in_first, line_in_second,
+                         "Saved lines aren't equal")
+        try:
+            os.remove('first.sqlite')
+        except OSError:
+            pass
+        try:
+            os.remove('second.sqlite')
         except OSError:
             pass
 
@@ -472,7 +656,7 @@ class JsonHandlerTest(unittest.TestCase):
     def test_json_handler_saves_file_name_given_during_creation(self):
         json_handler = JsonHandler("logger.json")
         self.assertEqual(json_handler.file_name, "logger.json",
-                         "CSVHandler didn't change file_name during creation")
+                         "JsonHandler didn't change file_name during creation")
 
     def test_json_handler_creates_log_json_by_default(self):
         my_log = LogEntry("morning", "debug")
@@ -521,6 +705,90 @@ class JsonHandlerTest(unittest.TestCase):
 
     def test_read_method_returns_all_logs_in_form_of_LogEntries(self):
         my_handler = JsonHandler("log.json")
+        my_logger = ProfilLogger(handlers=[my_handler])
+        my_logger.set_log_level("debug")
+        my_logger.debug("This is debug message")
+        my_logger.info("This is info message")
+        my_logger.warning("This is warning message")
+        my_logger.error("This is error message")
+        my_logger.critical("This is critical message")
+        for log in my_handler.read():
+            self.assertTrue(isinstance(log, LogEntry),
+                            f"{log} is not an instance of LogEntry")
+
+
+class SQLLiteHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global sqlite_handler
+        sqlite_handler = SQLLiteHandler()
+
+    def tearDown(self):
+        try:
+            os.remove('log.sqlite')
+        except OSError:
+            pass
+        try:
+            os.remove('sample.sqlite')
+        except OSError:
+            pass
+
+    def test_sqlite_handler_default_file_name_is_log_sqlite(self):
+        self.assertEqual(sqlite_handler.file_name, "log.sqlite",
+                         "log.sqlite is not default file name")
+
+    def test_sqlite_handler_saves_file_name_given_during_creation(self):
+        sqlite_handler = SQLLiteHandler("logger.sqlite")
+        self.assertEqual(sqlite_handler.file_name, "logger.sqlite",
+                         "SQLLiteHandler didn't change file_name during creation")
+
+    def test_sqlite_handler_creates_log_sqlite_by_default(self):
+        my_log = LogEntry("morning", "debug")
+        sqlite_handler.save(my_log)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertTrue("log.sqlite" in files)
+
+    def test_sqlite_handler_creates_log_with_specified_name(self):
+        my_log = LogEntry(msg="Message", level="warning")
+        my_sqlite_handler = SQLLiteHandler("sample.sqlite")
+        my_sqlite_handler.save(my_log)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertTrue("sample.sqlite" in files)
+
+    def test_sqlite_handler_returns_TypeError_when_passed_wrong_type(self):
+        with self.assertRaises(TypeError):
+            SQLLiteHandler(11)
+
+    def test_sqlite_handler_returns_ValueError_when_input_is_too_short(self):
+        with self.assertRaises(ValueError):
+            SQLLiteHandler("log")
+
+    def test_sqlite_handler_returns_ValueError_when_input_is_too_long(self):
+        with self.assertRaises(ValueError):
+            SQLLiteHandler("logloglogloglogloglogloglogloglogloglogloglogloglogloglogloglogloglog.sqlite")
+
+    def test_sqlite_handler_returns_ValueError_when_input_does_not_end_with_dotsqlite(self):
+        with self.assertRaises(ValueError):
+            SQLLiteHandler("logloglog.txt")
+
+    def test_sqlite_handler_returns_ValueError_when_file_name_ends_with_space(self):
+        with self.assertRaises(ValueError):
+            SQLLiteHandler("logloglog .sqlite")
+
+    def test_sqlite_handler_returns_ValueError_when_file_name_ends_with_dot(self):
+        with self.assertRaises(ValueError):
+            SQLLiteHandler("logloglog..sqlite")
+
+    def test_sqlite_handler_returns_ValueError_when_file_contains_invalid_character(self):
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for invalid in invalid_characters:
+            with self.assertRaises(ValueError):
+                SQLLiteHandler(f"loglogl{invalid}g.sqlite")
+
+    def test_read_method_returns_all_logs_in_form_of_LogEntries(self):
+        my_handler = SQLLiteHandler("log.sqlite")
         my_logger = ProfilLogger(handlers=[my_handler])
         my_logger.set_log_level("debug")
         my_logger.debug("This is debug message")
@@ -1381,6 +1649,271 @@ class ProfilLoggerReaderJsonHandlerTest(unittest.TestCase):
         logs_returned = my_reader.groupby_month(start_date=start_date, end_date=end_date)
         log_dict = {}
         for log in my_json_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+
+class ProfilLoggerReaderSQLLiteHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global my_sqlite_handler
+        my_sqlite_handler = SQLLiteHandler("SQLLiteHandler_sample_data.sqlite")
+
+    def test_reader_saves_file_handler_in_his_instance(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        self.assertTrue(my_reader.handler is my_sqlite_handler)
+
+    def test_find_by_text_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
+        text = "You never had a friend like me"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_text(text=text)
+        self.assertEqual(logs_returned, [],
+                         "Reader didn't return empty list")
+
+    def test_find_by_text_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.find_by_text(text="hopsa lala", start_date=start_date, end_date=end_date)
+
+    def test_find_by_text_works_with_only_text_input(self):
+        text = "debug"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_text(text=text)
+        logs_filtered = [log for log in my_sqlite_handler.read() if text in log.msg]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_and_start_date_input(self):
+        text = "info"
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_text(text=text, start_date=start_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if text in log.msg
+                         and start_date_as_datetime <= log.date]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_and_end_date_input(self):
+        text = "warning"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_text(text=text, end_date=end_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if text in log.msg
+                         and log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_text_works_with_text_start_and_end_dates_input(self):
+        text = "error"
+        start_date = "2021-06-22"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_text(text=text, start_date=start_date, end_date=end_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if text in log.msg
+                         and start_date_as_datetime <= log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_returns_empty_list_when_text_does_not_match_any_EntryLog_msg(self):
+        regex = r"\d"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex)
+        self.assertEqual(logs_returned, [],
+                         "Reader didn't return empty list")
+
+    def test_find_by_regex_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.find_by_regex(regex="\d", start_date=start_date, end_date=end_date)
+
+    def test_find_by_regex_works_with_only_regex_input(self):
+        regex = r"[a-g] message"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex)
+        logs_filtered = [log for log in my_sqlite_handler.read() if re.search(regex, log.msg)]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_and_start_date_input(self):
+        regex = r"[l-m] message"
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if re.search(regex, log.msg)
+                         and start_date_as_datetime <= log.date]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_and_end_date_input(self):
+        regex = r"[n-p] message"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, end_date=end_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if re.search(regex, log.msg)
+                         and log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_find_by_regex_works_with_text_start_and_end_dates_input(self):
+        regex = r"[r-z] message"
+        start_date = "2021-06-22"
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.find_by_regex(regex=regex, start_date=start_date, end_date=end_date)
+        logs_filtered = [log for log in my_sqlite_handler.read() if re.search(regex, log.msg)
+                         and start_date_as_datetime <= log.date <= end_date_as_datetime]
+        self.assertEqual(logs_returned, logs_filtered,
+                         "Logs returned by Reader does not match logs filtered manually")
+
+    def test_groupby_level_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_level(start_date=start_date, end_date=end_date)
+
+    def test_groupby_level_works_with_no_input(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_level()
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if log.level not in log_dict.keys():
+                log_dict[log.level] = []
+            log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_date_input(self):
+        start_date = "2021-06-25"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_level_works_with_end_date_input(self):
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_level(end_date=end_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_level_works_with_start_and_end_dates_input(self):
+        start_date = "2021-06-20"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-07-13"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_level(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if start_date_as_datetime <= log.date <= end_date_as_datetime:
+                if log.level not in log_dict.keys():
+                    log_dict[log.level] = []
+                log_dict[log.level].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_raises_ValueError_when_start_date_is_later_than_end_date(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        start_date = "2021-06-25"
+        end_date = "2021-06-22"
+        with self.assertRaises(ValueError):
+            my_reader.groupby_month(start_date=start_date, end_date=end_date)
+
+    def test_groupby_month_works_with_no_input(self):
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_month()
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if log.date.month not in log_dict.keys():
+                log_dict[log.date.month] = []
+            log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_works_with_start_date_input(self):
+        start_date = "2021-06-23"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if start_date_as_datetime <= log.date:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_returns_empty_dict_when_search_criteria_does_not_match_anything(self):
+        start_date = "2025-06-25"
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date)
+        log_dict = {}
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader is not empty")
+
+    def test_groupby_month_works_with_end_date_input(self):
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_month(end_date=end_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
+            if log.date <= end_date_as_datetime:
+                if log.date.month not in log_dict.keys():
+                    log_dict[log.date.month] = []
+                log_dict[log.date.month].append(log)
+        self.assertEqual(logs_returned, log_dict,
+                         "Dict returned by Reader does not match dict created manually")
+
+    def test_groupby_month_works_with_start_and_end_dates_input(self):
+        start_date = "2021-06-20"
+        start_date_as_datetime = datetime.datetime.fromisoformat(start_date)
+        end_date = "2021-06-25"
+        end_date_as_datetime = datetime.datetime.fromisoformat(end_date)
+        my_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        logs_returned = my_reader.groupby_month(start_date=start_date, end_date=end_date)
+        log_dict = {}
+        for log in my_sqlite_handler.read():
             if start_date_as_datetime <= log.date <= end_date_as_datetime:
                 if log.date.month not in log_dict.keys():
                     log_dict[log.date.month] = []
