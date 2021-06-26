@@ -5,13 +5,14 @@ import random
 import datetime
 import re
 import csv
+import json
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
 src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler
+from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler, JsonHandler
 
 
 class ProfilLoggerTest(unittest.TestCase):
@@ -141,7 +142,7 @@ class ProfilLoggerCSVHandlerTest(unittest.TestCase):
     def tearDown(self):
         try:
             os.remove('log.csv')
-        except OSError:
+        except OSError as error:
             pass
 
     def test_logger_can_save_message_to_csv_file(self):
@@ -369,7 +370,7 @@ class CSVHandlerTest(unittest.TestCase):
 
     def test_csv_handler_creates_log_csv_by_default(self):
         now = datetime.datetime.now()
-        my_log = LogEntry("this is message", "this is level")
+        my_log = LogEntry("i'm in danger", "danger")
         formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         csv_handler.save(my_log)
         with open("log.csv", "r", newline="\n") as csv_file:
@@ -380,14 +381,14 @@ class CSVHandlerTest(unittest.TestCase):
 
         self.assertEqual(date, formatted_now,
                          "CSVHandler didn't save date")
-        self.assertEqual(msg, "this is message",
+        self.assertEqual(msg, "i'm in danger",
                          "CSVHandler didn't save msg")
-        self.assertEqual(level, "this is level",
+        self.assertEqual(level, "danger",
                          "CSVHandler didn't save level")
 
     def test_csv_handler_creates_log_with_specified_name(self):
         now = datetime.datetime.now()
-        my_log = LogEntry("this is message", "this is level")
+        my_log = LogEntry("info is informative", "info")
         formatted_now = now.strftime("%d %b %Y %H:%M:%S")
         csv_handler = CSVHandler("sample.csv")
         csv_handler.save(my_log)
@@ -399,9 +400,9 @@ class CSVHandlerTest(unittest.TestCase):
 
         self.assertEqual(date, formatted_now,
                          "CSVHandler didn't save date")
-        self.assertEqual(msg, "this is message",
+        self.assertEqual(msg, "info is informative",
                          "CSVHandler didn't save msg")
-        self.assertEqual(level, "this is level",
+        self.assertEqual(level, "info",
                          "CSVHandler didn't save level")
 
     def test_csv_handler_returns_TypeError_when_passed_wrong_type(self):
@@ -436,6 +437,90 @@ class CSVHandlerTest(unittest.TestCase):
 
     def test_read_method_returns_all_logs_in_form_of_LogEntries(self):
         my_handler = CSVHandler("log.csv")
+        my_logger = ProfilLogger(handlers=[my_handler])
+        my_logger.set_log_level("debug")
+        my_logger.debug("This is debug message")
+        my_logger.info("This is info message")
+        my_logger.warning("This is warning message")
+        my_logger.error("This is error message")
+        my_logger.critical("This is critical message")
+        for log in my_handler.read():
+            self.assertTrue(isinstance(log, LogEntry),
+                            f"{log} is not an instance of LogEntry")
+
+
+class JsonHandlerTest(unittest.TestCase):
+
+    def setUp(self):
+        global json_handler
+        json_handler = JsonHandler()
+
+    def tearDown(self):
+        try:
+            os.remove('log.json')
+        except OSError:
+            pass
+        try:
+            os.remove('sample.json')
+        except OSError:
+            pass
+
+    def test_json_handler_default_file_name_is_log_json(self):
+        self.assertEqual(json_handler.file_name, "log.json",
+                         "log.json is not default file name")
+
+    def test_json_handler_saves_file_name_given_during_creation(self):
+        json_handler = JsonHandler("logger.json")
+        self.assertEqual(json_handler.file_name, "logger.json",
+                         "CSVHandler didn't change file_name during creation")
+
+    def test_json_handler_creates_log_json_by_default(self):
+        my_log = LogEntry("morning", "debug")
+        json_handler.save(my_log)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertTrue("log.json" in files)
+
+    def test_json_handler_creates_log_with_specified_name(self):
+        my_log = LogEntry(msg="Message", level="warning")
+        my_json_handler = JsonHandler("sample.json")
+        my_json_handler.save(my_log)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        files = os.listdir(dir_path)
+        self.assertTrue("sample.json" in files)
+
+    def test_json_handler_returns_TypeError_when_passed_wrong_type(self):
+        with self.assertRaises(TypeError):
+            JsonHandler(11)
+
+    def test_json_handler_returns_ValueError_when_input_is_too_short(self):
+        with self.assertRaises(ValueError):
+            JsonHandler("log")
+
+    def test_json_handler_returns_ValueError_when_input_is_too_long(self):
+        with self.assertRaises(ValueError):
+            JsonHandler("logloglogloglogloglogloglogloglogloglogloglogloglogloglogloglogloglog.json")
+
+    def test_json_handler_returns_ValueError_when_input_does_not_end_with_dotjson(self):
+        with self.assertRaises(ValueError):
+            JsonHandler("logloglog.txt")
+
+    def test_json_handler_returns_ValueError_when_file_name_ends_with_space(self):
+        with self.assertRaises(ValueError):
+            JsonHandler("logloglog .json")
+
+    def test_json_handler_returns_ValueError_when_file_name_ends_with_dot(self):
+        with self.assertRaises(ValueError):
+            JsonHandler("logloglog..json")
+
+    def test_json_handler_returns_ValueError_when_file_contains_invalid_character(self):
+        invalid_characters = ["\\", "/", ":", "*", '"', "<", ">", "|"]
+        for invalid in invalid_characters:
+            with self.assertRaises(ValueError):
+                JsonHandler(f"loglogl{invalid}g.json")
+
+    def test_read_method_returns_all_logs_in_form_of_LogEntries(self):
+        my_handler = JsonHandler("log.json")
         my_logger = ProfilLogger(handlers=[my_handler])
         my_logger.set_log_level("debug")
         my_logger.debug("This is debug message")
