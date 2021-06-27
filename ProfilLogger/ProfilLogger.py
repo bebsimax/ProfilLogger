@@ -18,7 +18,10 @@ class ProfilLogger:
         Args:
             handlers (list): List of Handlers, viable Handlers are: FileHandler, CSVHandler, JsonHandler, SQLLiteHandler
         """
-
+        if not isinstance(handlers, list):
+            raise TypeError("Passed argument must be a list")
+        if len(handlers) == 0:
+            raise TypeError("Passed list cannot be empty")
         viable_handlers = [FileHandler, CSVHandler, JsonHandler, SQLLiteHandler]
         for handler in handlers:
             for viable_handler in viable_handlers:
@@ -33,9 +36,8 @@ class ProfilLogger:
         """ProfilLogger initializer
 
         Args:
-            handlers (list): List of Handlers, viable Handlers are: FileHandler, CSVHandler, JsonHandler, SQLLiteHandler
+            handlers (list): Initializes the handlers attribute
          """
-
         self.levels = {
             "debug": 10,
             "info": 20,
@@ -166,7 +168,7 @@ class FileHandler:
         """FileHandler initializer
 
         Args:
-            file_name (Optional[str]): name of a file to save to or read from, will default to log.txt if not specified
+            file_name (Optional[str]): Initializes the file_name attribute
         """
         self.file_name = file_name
 
@@ -241,7 +243,7 @@ class CSVHandler:
         """CSVHandler initializer
 
             Args:
-                file_name (Optional[str]): name of a file to save to or read from, will default to log.csv if not specified
+                file_name (Optional[str]): Initializes the file_name attribute
         """
         self.file_name = file_name
 
@@ -314,7 +316,7 @@ class JsonHandler:
         """JsonHandler initializer
 
             Args:
-                file_name (Optional[str]): name of a file to save to or read from, will default to log.json if not specified
+                file_name (Optional[str]): Initializes the file_name attribute
         """
         self.file_name = file_name
 
@@ -391,7 +393,7 @@ class SQLLiteHandler:
         """SQLLiteHandler initializer
 
             Args:
-                file_name (Optional[str]): name of a file to save to or read from, will default to log.sqlite if not specified
+                file_name (Optional[str]): Initializes the file_name attribute
         """
         self.file_name = file_name
 
@@ -441,10 +443,13 @@ class LogEntry:
             if date is not specified will default to current system's date
         """
         if date:
-            try:
-                self.date = datetime.datetime.strptime(date, "%d %b %Y %H:%M:%S")
-            except ValueError:
-                print("Wrong format of a date")
+            if isinstance(date, datetime.datetime):
+                self.date = date
+            else:
+                try:
+                    self.date = datetime.datetime.strptime(date, "%d %b %Y %H:%M:%S")
+                except ValueError:
+                    print("Wrong format of a date")
         else:
             self.date = datetime.datetime.now()
         self.level = level
@@ -514,23 +519,32 @@ class ProfilLoggerReader:
 
         # start_date validation
         if start_date:
-            if not isinstance(start_date, str):
-                raise TypeError("start_date needs to be a string")
-            try:
-                start_date = datetime.datetime.fromisoformat(start_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(start_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(start_date, str):
+                    try:
+                        start_date = datetime.datetime.fromisoformat(start_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
+
         # end_date validation
         if end_date:
-            if not isinstance(end_date, str):
-                raise TypeError("end_date needs to be a string")
-            try:
-                end_date = datetime.datetime.fromisoformat(end_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(end_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(end_date, str):
+                    try:
+                        end_date = datetime.datetime.fromisoformat(end_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
             if start_date:
                 if end_date < start_date:
-                    raise ValueError("end_date needs to be later than start_date")
+                    raise ValueError("end_date needs to be past start_date")
 
         # filtration of logs based on passed arguments
         if not start_date and not end_date:
@@ -564,23 +578,32 @@ class ProfilLoggerReader:
 
         # start_date validation
         if start_date:
-            if not isinstance(start_date, str):
-                raise TypeError("start_date needs to be a string")
-            try:
-                start_date = datetime.datetime.fromisoformat(start_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(start_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(start_date, str):
+                    try:
+                        start_date = datetime.datetime.fromisoformat(start_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
+
         # end_date validation
         if end_date:
-            if not isinstance(end_date, str):
-                raise TypeError("end_date needs to be a string")
-            try:
-                end_date = datetime.datetime.fromisoformat(end_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(end_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(end_date, str):
+                    try:
+                        end_date = datetime.datetime.fromisoformat(end_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
             if start_date:
                 if end_date < start_date:
-                    raise ValueError("end_date needs to be later than start_date")
+                    raise ValueError("end_date needs to be past start_date")
 
         # filtration of logs based on passed arguments
         if not start_date and not end_date:
@@ -606,23 +629,32 @@ class ProfilLoggerReader:
         """
         # start_date validation
         if start_date:
-            if not isinstance(start_date, str):
-                raise TypeError("start_date needs to be a string")
-            try:
-                start_date = datetime.datetime.fromisoformat(start_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(start_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(start_date, str):
+                    try:
+                        start_date = datetime.datetime.fromisoformat(start_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
+
         # end_date validation
         if end_date:
-            if not isinstance(end_date, str):
-                raise TypeError("end_date needs to be a string")
-            try:
-                end_date = datetime.datetime.fromisoformat(end_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(end_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(end_date, str):
+                    try:
+                        end_date = datetime.datetime.fromisoformat(end_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
             if start_date:
                 if end_date < start_date:
-                    raise ValueError("end_date needs to be later than start_date")
+                    raise ValueError("end_date needs to be past start_date")
         log_dict = {}
         if not start_date and not end_date:
             for log in self.handler.read():
@@ -663,23 +695,32 @@ class ProfilLoggerReader:
         """
         # start_date validation
         if start_date:
-            if not isinstance(start_date, str):
-                raise TypeError("start_date needs to be a string")
-            try:
-                start_date = datetime.datetime.fromisoformat(start_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(start_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(start_date, str):
+                    try:
+                        start_date = datetime.datetime.fromisoformat(start_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
+
         # end_date validation
         if end_date:
-            if not isinstance(end_date, str):
-                raise TypeError("end_date needs to be a string")
-            try:
-                end_date = datetime.datetime.fromisoformat(end_date)
-            except ValueError:
-                raise ValueError("Please use iso format")
+            if isinstance(end_date, datetime.datetime):
+                pass
+            else:
+                if isinstance(end_date, str):
+                    try:
+                        end_date = datetime.datetime.fromisoformat(end_date)
+                    except ValueError:
+                        raise ValueError("Please use iso format")
+                else:
+                    raise TypeError("start_date needs to be a string")
             if start_date:
                 if end_date < start_date:
-                    raise ValueError("end_date needs to be later than start_date")
+                    raise ValueError("end_date needs to be past start_date")
         log_dict = {}
         if not start_date and not end_date:
             for log in self.handler.read():
