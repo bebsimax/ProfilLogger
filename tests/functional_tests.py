@@ -1,6 +1,7 @@
 import unittest
 import os
 import sys
+
 # Jan is a careful developer who prefers logging over print statements
 # He has heard about new custom logger called ProfilLogger
 # He quickly imports it inside his working file
@@ -12,7 +13,7 @@ src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
 zad_rek_path = os.path.join(src_path, 'zad_rek')
 sys.path.append(zad_rek_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader
+from ProfilLogger import ProfilLogger, FileHandler, CSVHandler, JsonHandler, SQLLiteHandler, LogEntry, ProfilLoggerReader
 
 
 class UsageTest(unittest.TestCase):
@@ -24,9 +25,20 @@ class UsageTest(unittest.TestCase):
     def tearDown(self):
         try:
             os.remove('log.txt')
-        except OSError as error:
-            print(error)
-            print("log.log NOT REMOVED")
+        except OSError:
+            pass
+        try:
+            os.remove('log.csv')
+        except OSError:
+            pass
+        try:
+            os.remove('log.json')
+        except OSError:
+            pass
+        try:
+            os.remove('log.sqlite')
+        except OSError:
+            pass
 
     def test_logger_not_always_creates_a_file(self):
         # Before logging his current work he decides to test the new logger
@@ -81,7 +93,7 @@ class UsageTest(unittest.TestCase):
     def test_ProfilLoggerReader_returns_LogEntries(self):
         # Jan is satisfied with loggers work so far, but manually checking files made him dizzy
         # So he creates instance of FileHandler
-        my_file_handler = FileHandler("my_log.txt")
+        my_file_handler = FileHandler("log.txt")
         # He passes it as an argument to the ProlifLogger, and quickly creates some logs
         my_logger = ProfilLogger(handlers=[my_file_handler])
         my_logger.set_log_level("debug")
@@ -96,11 +108,43 @@ class UsageTest(unittest.TestCase):
         log_list = my_file_reader.find_by_text("message")
         for log in log_list:
             self.assertTrue(isinstance(log, LogEntry))
-        # After that, he checks if method "find_by_regex" returns his logs as a list of LogsEntries
+        # Next, he checks if method "find_by_regex" returns his logs as a list of LogsEntries
         regex_log_list = my_file_reader.find_by_regex("[a-g] message")
         for log in regex_log_list:
             self.assertTrue(isinstance(log, LogEntry))
 
+    def test_ProfilLoggerReader_returns_list_of_LogEntry_for_every_handler(self):
+        # Jan decides to test all supported file types
+        my_file_handler = FileHandler()
+        my_csv_handler = CSVHandler()
+        my_json_handler = JsonHandler()
+        my_sqlite_handler = SQLLiteHandler()
+        # He creates logger with all handlers
+        my_logger = ProfilLogger(handlers=[my_file_handler, my_csv_handler, my_json_handler, my_sqlite_handler])
+        # Writes down some logs
+        my_logger.set_log_level("info")
+        my_logger.info("info message")
+        my_logger.warning("warning message")
+        my_logger.error("error message")
+        my_logger.critical("critical message")
+        # And creates reader for each type
+        my_file_reader = ProfilLoggerReader(handler=my_file_handler)
+        my_csv_reader = ProfilLoggerReader(handler=my_csv_handler)
+        my_json_reader = ProfilLoggerReader(handler=my_json_handler)
+        my_sqlite_reader = ProfilLoggerReader(handler=my_sqlite_handler)
+        # Reads logs with given message to separate lists
+        logs_from_file = my_file_reader.find_by_text("message")
+        logs_from_csv = my_csv_reader.find_by_text("message")
+        logs_from_json = my_json_reader.find_by_text("message")
+        logs_from_sqlite = my_sqlite_reader.find_by_text("message")
+        # And checks if all messages were saved, and if objects are instances of LogEntry
+        all_logs = [logs_from_file, logs_from_csv, logs_from_json, logs_from_sqlite]
+        for log_list in all_logs:
+            self.assertEqual(len(log_list), 4,
+                             "Didn't save all")
+            for log in log_list:
+                self.assertTrue(isinstance(log,  LogEntry),
+                                "It's not a log")
 
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
