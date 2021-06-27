@@ -9,11 +9,10 @@ import sys
 
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
-src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
-zad_rek_path = os.path.join(src_path, 'zad_rek')
-sys.path.append(zad_rek_path)
+logger_path = (os.path.join(os.path.dirname(CUR_DIR), 'ProfilLogger'))
+sys.path.append(logger_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, CSVHandler, JsonHandler, SQLLiteHandler, LogEntry, ProfilLoggerReader
+from ProfilLogger.ProfilLogger import ProfilLogger, FileHandler, CSVHandler, JsonHandler, SQLLiteHandler, LogEntry, ProfilLoggerReader
 
 
 class UsageTest(unittest.TestCase):
@@ -146,9 +145,6 @@ class UsageTest(unittest.TestCase):
                 self.assertTrue(isinstance(log,  LogEntry),
                                 "It's not a log")
 
+
 if __name__ == '__main__':
     unittest.main(warnings='ignore')
-
-
-
-
