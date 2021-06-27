@@ -10,10 +10,11 @@ import sqlite3
 os.chdir(os.path.dirname(__file__))
 CUR_DIR = os.getcwd()
 src_path = (os.path.join(os.path.dirname(CUR_DIR), 'src'))
-zad_rek_path = os.path.join(src_path, 'zad_rek')
-sys.path.append(zad_rek_path)
+logger_path = (os.path.join(os.path.dirname(CUR_DIR), 'ProfilLogger'))
+sys.path.append(logger_path)
 
-from ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler, JsonHandler, SQLLiteHandler
+
+from ProfilLogger.ProfilLogger import ProfilLogger, FileHandler, LogEntry, ProfilLoggerReader, CSVHandler, JsonHandler, SQLLiteHandler
 
 
 class ProfilLoggerTest(unittest.TestCase):
