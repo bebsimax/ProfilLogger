@@ -1,5 +1,4 @@
-<h2>Zadanie rekrutacyjne</h2>
-<h3>Profil Software Backend InternShip</h3>
+<h2>Recruitment Test</h2>
 
 autor: Jakub Podolski
 
