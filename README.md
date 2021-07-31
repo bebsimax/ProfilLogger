@@ -1,4 +1,4 @@
-<h2>Recruitment Test</h2>
+<h2>Recruitment Task</h2>
 
 autor: Jakub Podolski
 
